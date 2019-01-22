@@ -1,0 +1,15 @@
+Smart Pointers
+  (Modern C++ Design)
+
+  - simulate simple pointers by implementing -> and *
+  - take care of freeing pointed-to objects
+  - value semantics: object you can copy and assign to
+  - plain pointers don't have value semantics because once you change
+    what it points to, you lose the value. It owns the thing it points
+    to. Not only that, but if you make a copy of it and call delete on
+    both, you have a catastrophic error. So you as the programmer need
+    to track it, the compiler can't.
+  - making a really good smart pointer class is really hard, and honestly
+    Scott Meyers himself can't really do it. So this lab should really
+    create a not-so-smart pointer. All it does really is call delete
+    for you.

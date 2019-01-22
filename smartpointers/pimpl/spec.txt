@@ -1,0 +1,38 @@
+
+
+I think as programmers we can admit that we might be good, but we are not perfect.
+When we're solving some problem or providing some interface, we tend to miss some
+cases or not consider some edge case altogether. We are all culprits and one of the
+most common victims of our crime is our memory system. When writing in c++, often
+our programs leak memory. In order to not leak memory, we have to consider every
+possible control flow that any program using our class follows, a problem which in
+many cases is combinatorial in number of possible outcomes. This makes it challenging
+to write classes that perfectly call delete (or delete[]) on every object that we've
+allocated with new.
+
+In this lab, we're going to come up with a solution to this problem. Our solution
+will mirror the c++11 Smart Pointer solution. First of all, you as a programmer
+should get accustomed to the unique_ptr and shared_ptr classes since they take
+care of cleaning up you're memory. But before we let c++ take care of our memory,
+we are going to write some code that cleans up our memory for us. Note that while
+the interface of our reduced Smart Pointer class reflects the behavior of c++
+Smart Pointers, it is not the same and you shouldn't expect it to do anything that
+you don't have it do. Or at least anything that we haven't told you to have it
+do.
+
+The motivation behind this lab is to write some classes that manage dynamically
+allocated memory for us (or the user of these classes). The idea is that whenever
+the user wants to keep a pointer to some allocated memory, they provide an allocation
+(likely uses <new>) and deletion function (likely uses <delete> or <delete[]>) but
+pawns the responsibilty of actually allocated and freeing the memory to someone
+else. That way, they never have to worry about freeing memory or considering every
+path their program can follow. They just let our interface take care of the memory
+for them and we'll promise to never leak memory so long as they follow the rules
+of our interface.
+
+With that being said, we must specify to the user exactly what we do and (probably
+more importantly) what we don't do. This will be more clear as I specify the public
+interface.
+
+1) Basic pointer functionality.
+
