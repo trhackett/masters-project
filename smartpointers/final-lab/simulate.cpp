@@ -13,15 +13,15 @@ void run(Timer& t, double& constructTime, double& simulationTime) {
 	Simulation sim(10, 10,  // maxRows and maxCols
 				   0, 0,    // startRow and startCol
 				   9, 9,    // endRow and endCol
-				   5        // car frequency
-				   );       
+				   5,       // car frequency
+				   100);    // number of iterations  
 	constructTime = t.elapsed();
 
 	// restart timer
 	t.start();
 
 	// start simulation
-	sim.runSimulation(100);
+	sim.runSimulation();
 	simulationTime = t.elapsed();
 
 	// restart time

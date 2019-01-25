@@ -122,9 +122,9 @@ private:
 
 class Simulation {
 public:
-	Simulation(int r, int c, int sR, int sC, int eR, int eC, int Fz);
+	Simulation(int r, int c, int sR, int sC, int eR, int eC, int Fz, int numI);
 	~Simulation();
-	void runSimulation(int numIterations);
+	void runSimulation();
 
 	int getEndRow() const  { return endRow; }
 	int getEndCol() const  { return endCol; }
@@ -147,6 +147,9 @@ private:
 
 	  // release a car every carFrequency iterations
 	int carFrequency;
+
+	  // number of iterations the simulation goes through
+	int numIterations;
 
 	list<SmartPtr<Car, SharedPtr>> allCars;
 

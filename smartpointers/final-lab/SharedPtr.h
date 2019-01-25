@@ -38,7 +38,7 @@ public:
 
 	  // if it's an invalid reference (has been moved to another),
 	  // then return -1
-	int getNumReferences() const {
+	int getNumReferences() const override {
 		if (m_refCount != nullptr) {
 			return m_refCount->getCount();
 		} 
