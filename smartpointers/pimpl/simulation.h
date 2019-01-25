@@ -33,6 +33,9 @@ public:
 	int row() const       { return m_row; }
 	int col() const       { return m_col; }
 
+	void setRow(int r)    { m_row = r; }
+	void setCol(int c)    { m_col = c; }
+
 	  // calling the heuristic function
 	double getHValue(int row, int col, Simulation* sim);
 
@@ -150,7 +153,7 @@ private:
 	  // first iteration
 	void insertNewCar();
 	  // takes a car and a direction and moves it in that direction
-	void moveCarInDirection(SmartPtr<Car, SharedPtr> carPtr, Direction d);
+	bool moveCarInDirection(SmartPtr<Car, SharedPtr> carPtr, Direction d);
 };
 
 #endif

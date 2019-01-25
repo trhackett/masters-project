@@ -86,7 +86,9 @@ void Simulation::runSimulation(int numIterations) {
 		list<SmartPtr<Car, SharedPtr>>::iterator e = allCars.end();
 		for (; s != e; ++s) {
 			RouteComputer rc;
-			moveCarInDirection(*s, rc.getNextMove(*s, *this));
+			if (moveCarInDirection(*s, rc.getNextMove(*s, *this))) {
+				s = allCars.erase(s);
+			}
 		}
 	}
 }
@@ -111,7 +113,10 @@ void Simulation::insertNewCar() {
 
   // going into this function, you KNOW that the direction is a valid
   // one or it wouldn't even have been considered by getNextMove()
-void Simulation::moveCarInDirection(SmartPtr<Car, SharedPtr> carPtr, Direction d)
+
+  // this returns true if the car has left the simulation and needs to be
+  // removed from allCars
+bool Simulation::moveCarInDirection(SmartPtr<Car, SharedPtr> carPtr, Direction d)
 {
 	int currRow = carPtr->row();
 	int currCol = carPtr->col();
@@ -121,9 +126,20 @@ void Simulation::moveCarInDirection(SmartPtr<Car, SharedPtr> carPtr, Direction d
 	  // if you can move in that direction, then remove the car from the intersection
 	  // you're at currently and insert yourself at the one you're going to
 	if (getRowColInDirection(nextRow, nextCol, d)) {
+		  // if the car is done, remove it
+		if (nextRow == endRow && nextCol == endCol) {
+			iGrid[currRow][currCol]->removeCar(carPtr);
+			return true;
+		}
+
 		iGrid[nextRow][nextCol]->addCar(carPtr);
 		iGrid[currRow][currCol]->removeCar(carPtr);
+
+		carPtr->setRow(nextRow);
+		carPtr->setCol(nextCol);
 	}
+
+	return false;
 }
 
 
@@ -213,7 +229,12 @@ Direction RouteComputer::getNextMove(SmartPtr<Car, SharedPtr> car, Simulation& s
 
 				  // if you're at the end, be done!
 				if (parent.row == sim.getEndRow() && parent.col == sim.getEndCol()) {
-					return backtrack(parent.parentRow, parent.parentCol,
+					  // add to the closed list
+					closedList[parent.row][parent.col] = parent;
+
+					  // and backtrack until you're where the car is, return
+					  // the direction it should move in
+					return backtrack(parent.row, parent.row,
 								     car->row(), car->col(), closedList);
 				}
 
@@ -244,6 +265,36 @@ Direction RouteComputer::getNextMove(SmartPtr<Car, SharedPtr> car, Simulation& s
 	return Bad;
 }
 
+
+Direction RouteComputer::backtrack(int r, int c, int startRow, int startCol,
+									 vector<vector<node>>& closedList)
+{
+	int parentRow = closedList[r][c].parentRow;
+	int parentCol = closedList[r][c].parentCol;
+
+	  // if you're back at the beginning, return the direction it should go
+	if (parentRow == startRow && parentCol == startCol) {
+		return evalDirection(parentRow, parentCol, r, c);
+	}
+
+	  // if not, then keep following the parent route
+	return backtrack(parentRow, parentCol, startRow, startCol, closedList);
+}
+
+bool RouteComputer::betterOptionIn(int r, int c, double f,
+									 map<pair<int, int>, double>& fVals)
+{
+	map<pair<int, int>, double>::iterator it = fVals.find(pair<int, int>(r, c));
+
+	  // if there's an f value in there and it's better than the one we have, return
+	  // true
+	if (it != fVals.end() && it->second < f) {
+		return true;
+	}
+
+	return false;
+}
+
 Direction RouteComputer::evalDirection(int fromR, int fromC,
 										 int toR, int toC)
 {
@@ -266,35 +317,6 @@ Direction RouteComputer::evalDirection(int fromR, int fromC,
 	}
 
 	return Bad;
-}
-
-Direction RouteComputer::backtrack(int r, int c, int startRow, int startCol,
-									 vector<vector<node>>& closedList)
-{
-	int parentRow = closedList[r][c].parentRow;
-	int parentCol = closedList[r][c].parentCol;
-
-	  // if you're back at the beginning, return the direction it should go
-	if (parentRow == startRow && parentCol == startCol) {
-		return evalDirection(r, c, parentRow, parentCol);
-	}
-
-	  // if not, then keep following the parent route
-	return backtrack(parentRow, parentCol, startRow, startCol, closedList);
-}
-
-bool RouteComputer::betterOptionIn(int r, int c, double f,
-									 map<pair<int, int>, double>& fVals)
-{
-	map<pair<int, int>, double>::iterator it = fVals.find(pair<int, int>(r, c));
-
-	  // if there's an f value in there and it's better than the one we have, return
-	  // true
-	if (it != fVals.end() && it->second < f) {
-		return true;
-	}
-
-	return false;
 }
 
 
@@ -322,7 +344,10 @@ bool RouteComputer::betterOptionIn(int r, int c, double f,
 void RouteComputer::printClosedList(vector<vector<node>>& l) {
 	for (unsigned int i = 0; i != l.size(); i++) {
 		for (unsigned int j = 0; j != l[i].size(); j++) {
-			if (l[i][j].f < 0) {
+			if (l[i][j].parentRow == -1 && l[i][j].parentCol == -1) {
+				cout << "BEG ";
+			}
+			else if (l[i][j].f < 0) {
 				cout << "INV ";
 			} else {
 				cout << l[i][j].parentRow << "," << l[i][j].parentCol << " ";
@@ -330,4 +355,5 @@ void RouteComputer::printClosedList(vector<vector<node>>& l) {
 		}
 		cout << endl;
 	}
+	cout << endl << endl;
 }
