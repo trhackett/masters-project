@@ -201,15 +201,62 @@ should use your now exceptional C++ skills to design the simulator. A few key
 requirements:
 
 	a. It must not store ANY raw pointers.
-	b. You Simulation class must be constructed with the following integers:
-	     - numRows/numCols: number rows/columns in the network
-	       * (numRows*numCols) is the number of intersections
-	     - startRow/startCol: row/column each car enters on
-	     - endRow/endCol: row/column each car exits on
-	     - carFreq: insert a new car every carFreq interations
-	c. 
+
+	b. It must leak no memory.
+
+	c. You Simulation class must be constructed with the following integers:
+	- numRows/numCols: number rows/columns in the network
+	  * (numRows*numCols) is the number of intersections
+	- startRow/startCol: row/column each car enters on
+	- endRow/endCol: row/column each car exits on
+	- carFreq: insert a new car every carFreq interations
+	- numIterations: number of iterations the simulation goes through
+
+	d. You Simulation class should support the provided driver program that
+	run it: simulate.cpp
+
+	e. At the end of the simulation, it should print out the average amount
+	of time (in ms) it took each car to successfully get from
+	startRow,startCol to endRow,endCol to get there. Any cars that didn't
+	make it don't get factored into the statistic. It's very rudimentary.
+
+	f. You must use Professor Smallberg's Timer class (timer.h) so we have
+	consistent results.
+
+Each iteration, every car has the chance to move. Cars can only move
+in one of four directions: Up, Right, Down, or Left. To compute the
+optimal move, each car must use A* search each iteration. You can vary
+which heuristic function they use to compute the h value of each intersection.
+Heuristic functions take the following form:
+
+	  // returns a double, takes in coordinates of an intersection
+	  // and the Simulation
+	double heuristic(int row, int col, Simulation& sim);
 
 An interation of the simulation consists of the following:
  - potentially inserting a new car
- - giving each car the chance to move (in a direction the car computes)
+ - moving each car in the simulation (in a direction the car computes)
  - removing the car from the simulation if it's reached the end
+
+This simulation is admittedly rudimentary. Once you've got it working and
+it leaks no memory, here are fun directions you can take it in.
+
+- heuristics: which ones can you think of that get cars there the fastest?
+- traffic model: it's unlikely that intersections can actually suuport an
+number of cars. It could be interesting to block off full intersections.
+Also, it would be smart if cars could balance the load of the network. Is
+there a way to weight the movement of a car depending on how full the
+intersection is? For example, maybe only a certain number of cars can leave
+an intersection each iteration.
+- accident simulation: what happens if there is an accident at an intersection
+and none of the cars can move? How would they factor that into their route.
+
+Resources
+
+<a href="https://en.cppreference.com/w/cpp/language/template_parameters">Template Parameters</a>
+<a href="http://valgrind.org/docs/">valgrind</a>
+<a href="https://www.gnu.org/software/make/">makefile</a>
+Herb Sutterand Andrei Alexandrescu, <a href="https://www.oreilly.com/library/view/c-coding-standards/0321113586/">C++ Coding Standards: 101 Rules, Guidelines, and Best Practices</a> Pearson Education Inc. (2005)
+	Rules 1, 3, 14, 35, 36, 48, 53, 56, 66, 67
+Andrei Alexandrescu, <a href="http://erdani.com/index.php/books/modern-c-design/">Modern C++ Design: Generic Programming and Design Patterns Applied</a>, Addison-Wesley (2001)
+	Chapters 1 and 7
