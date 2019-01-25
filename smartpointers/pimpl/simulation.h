@@ -122,7 +122,7 @@ private:
 
 class Simulation {
 public:
-	Simulation(int r, int c);
+	Simulation(int r, int c, int sR, int sC, int eR, int eC, int Fz);
 	~Simulation();
 	void runSimulation(int numIterations);
 

@@ -10,7 +10,11 @@ void run(Timer& t, double& constructTime, double& simulationTime) {
 	t.start();
 
 	// create simulation - number of rows and columns
-	Simulation sim(10, 10);
+	Simulation sim(10, 10,  // maxRows and maxCols
+				   0, 0,    // startRow and startCol
+				   9, 9,    // endRow and endCol
+				   5        // car frequency
+				   );       
 	constructTime = t.elapsed();
 
 	// restart timer

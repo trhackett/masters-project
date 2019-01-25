@@ -46,9 +46,9 @@ void Intersection::addCar(SmartPtr<Car, SharedPtr> carPtr) {
 }
 
 
-Simulation::Simulation(int rows, int cols)
- : maxRows(rows), maxCols(cols), startRow(0), startCol(0),
-   endRow(maxRows-1), endCol(maxCols-1), carFrequency(5)
+Simulation::Simulation(int r, int c, int sR, int sC, int eR, int eC, int F)
+ : maxRows(r), maxCols(c), startRow(sR), startCol(sC),
+   endRow(eR), endCol(eC), carFrequency(F)
 {
 	  // intersections is currently empty - we need to set Up the
 	  // environment by creating a bunch of intersection with their
