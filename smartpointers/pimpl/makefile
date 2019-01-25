@@ -10,7 +10,7 @@ test: main
 	$(VALGRIND) ./main
 
 clean:
-	rm main
+	rm main sim
 
 sim: simulate.cpp simulation.h simulation.cpp SmartPtr.h UniquePtr.h SharedPtr.h
 	$(GCC) simulation.cpp simulate.cpp -o sim
