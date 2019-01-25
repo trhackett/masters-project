@@ -183,7 +183,13 @@ Direction RouteComputer::getNextMove(SmartPtr<Car, SharedPtr> car, Simulation& s
 
 	  // init empty
 	priority_queue<node, vector<node>, decltype(cmpNodes)> openList(cmpNodes);
-	map<pair<int, int>, node> closedList;
+
+	  // initialize closedList
+	vector<vector<node>> closedList(sim.getMaxRows());
+	for (int i = 0; i < sim.getMaxRows(); i++) {
+		closedList[i] = vector<node>(sim.getMaxCols());
+	}
+
 	map<pair<int, int>, double> closedFVals;
 	map<pair<int, int>, double> openFVals;
 
@@ -196,19 +202,6 @@ Direction RouteComputer::getNextMove(SmartPtr<Car, SharedPtr> car, Simulation& s
 		node parent = openList.top();
 		openList.pop();
 
-		  // if you're at the end, be done!
-		if (parent.row == sim.getEndRow() && parent.col == sim.getEndCol()) {
-			return backtrack(parent.row, parent.col,
-						     car->row(), car->col(), closedList);
-		}
-
-		  // also remove it from the open f values
-		pair<int, int> p(parent.row, parent.col);
-		map<pair<int, int>, double>::iterator it = openFVals.find(p);
-		if (it != openFVals.end()) {
-			openFVals.erase(it);
-		}
-
 		  // try each direction
 		for (int i = 0; i < 4; i++) {
 			int nextRow = parent.row;
@@ -218,23 +211,33 @@ Direction RouteComputer::getNextMove(SmartPtr<Car, SharedPtr> car, Simulation& s
 			  // try up
 			if (sim.getRowColInDirection(nextRow, nextCol, d)) {
 
-				  // add it to the open list as long as there isn't an f value
-				  // corresponding to that point on the grid that is smaller than
-				  // this one
-				double hVal = car->getHValue(nextRow, nextCol, &sim);
-				node child(nextRow, nextCol, parent.row, parent.col, parent.g + 1, hVal);
+				  // if you're at the end, be done!
+				if (parent.row == sim.getEndRow() && parent.col == sim.getEndCol()) {
+					return backtrack(parent.parentRow, parent.parentCol,
+								     car->row(), car->col(), closedList);
+				}
 
-				if (!betterOptionIn(child.row, child.col, child.f, openFVals) &&
-					!betterOptionIn(child.row, child.col, child.f, closedFVals))
+				  // if it's in the closed list don't check it again
+				if (closedList[nextRow][nextCol].f == -1)
 				{
-					openList.push(child);
-					openFVals[pair<int, int>(child.row, child.col)] = child.f;
+					  // add it to the open list as long as there isn't an f value
+					  // corresponding to that point on the grid that is smaller than
+					  // this one
+					double hVal = car->getHValue(nextRow, nextCol, &sim);
+					node child(nextRow, nextCol, parent.row, parent.col, parent.g + 1, hVal);
+
+					if (!betterOptionIn(child.row, child.col, child.f, openFVals) &&
+						!betterOptionIn(child.row, child.col, child.f, closedFVals))
+					{
+						openList.push(child);
+						openFVals[pair<int, int>(child.row, child.col)] = child.f;
+					}
 				}
 			}
 		}
 
 		  // add it to the closed vals
-		closedList[pair<int, int>(parent.row, parent.col)] = parent;
+		closedList[parent.row][parent.col] = parent;
 		closedFVals[pair<int, int>(parent.row, parent.col)] = parent.f;
 	}
 
@@ -266,10 +269,10 @@ Direction RouteComputer::evalDirection(int fromR, int fromC,
 }
 
 Direction RouteComputer::backtrack(int r, int c, int startRow, int startCol,
-									 map<pair<int, int>, node>& closedList)
+									 vector<vector<node>>& closedList)
 {
-	int parentRow = closedList[pair<int, int>(r, c)].parentRow;
-	int parentCol = closedList[pair<int, int>(r, c)].parentCol;
+	int parentRow = closedList[r][c].parentRow;
+	int parentCol = closedList[r][c].parentCol;
 
 	  // if you're back at the beginning, return the direction it should go
 	if (parentRow == startRow && parentCol == startCol) {
@@ -292,4 +295,39 @@ bool RouteComputer::betterOptionIn(int r, int c, double f,
 	}
 
 	return false;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void RouteComputer::printClosedList(vector<vector<node>>& l) {
+	for (unsigned int i = 0; i != l.size(); i++) {
+		for (unsigned int j = 0; j != l[i].size(); j++) {
+			if (l[i][j].f < 0) {
+				cout << "INV ";
+			} else {
+				cout << l[i][j].parentRow << "," << l[i][j].parentCol << " ";
+			}
+		}
+		cout << endl;
+	}
 }

@@ -92,7 +92,8 @@ private:
 		node(int r, int c, int pr, int pc, double gVal, double hVal)
 		 : row(r), col(c), parentRow(pr), parentCol(pc), g(gVal), h(hVal), f(g+h)
 		{ }
-		node() {}
+		  // if f < 0, then it's invalid
+		node() : f(-1) {}
 	};
 
 	  // comparison function that allows us to use priority queue with
@@ -103,9 +104,11 @@ private:
 		{ return left.f > right.f; };
 
 	Direction backtrack(int r, int c, int startRow, int startCol,
-					    map<pair<int, int>, node>& closedList);
+					    vector<vector<node>>& closedList);
 	bool betterOptionIn(int r, int c, double f, map<pair<int, int>, double>& fVals);
 	Direction evalDirection(int fromR, int fromC, int toR, int toC);
+
+	void printClosedList(vector<vector<node>>& l);
 };
 
 
