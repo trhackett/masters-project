@@ -25,7 +25,7 @@ public:
 	SmartPtr(void (*) (Object*));
 
 	  // copy contructor
-	SmartPtr(SmartPtr<Object, Impl>&);
+	SmartPtr(const SmartPtr<Object, Impl>&);
 
 	  // move constructor
 	SmartPtr(SmartPtr<Object, Impl>&&);
@@ -51,13 +51,13 @@ public:
 	  // get the value in the memory pointed to
 	  // return a reference so that you can change it
 	Object& operator*() const {
-		return m_implPtr->operator*();
+		return pImpl->operator*();
 	}
 
 	  // get back a pointer to the memory so that you
 	  // can call member functions if it's a class
 	Object* operator->() const {
-		return m_implPtr->operator->();
+		return pImpl->operator->();
 	}
 
 	  // access the element stored some offset away
@@ -66,17 +66,17 @@ public:
 	  // anything could be stored there - same as raw
 	  // pointers.
 	Object& operator[](int offset) const {
-		return m_implPtr->operator[](offset);
+		return pImpl->operator[](offset);
 	}
 
 	  // get the memory location some offset away from
 	  // what the UniquePtr points to
 	Object* operator+(int offset) const {
-		return m_implPtr->operator+(offset);
+		return pImpl->operator+(offset);
 	}
 
 	Object* operator-(int offset) const {
-		return m_implPtr->operator-(offset);
+		return pImpl->operator-(offset);
 	}
 
 	  // boolean functions to see if it's nullptr - BAD
@@ -86,33 +86,37 @@ public:
 
 	  // instead maybe we'll just overload the operators that compare it
 	  // to nullptr (which we do often) and to another SmartPtr
-	bool operator==(Object* rhs) {
-		return m_implPtr->operator==(rhs);
+	bool operator==(const Object* rhs) const {
+		return pImpl->operator==(rhs);
 	}
 
-	bool operator!=(Object* rhs) {
-		return m_implPtr->operator!=(rhs);
+	bool operator!=(const Object* rhs) const {
+		return pImpl->operator!=(rhs);
 	}
 
-	bool operator==(SmartPtr<Object, Impl>& rhs) {
-		return m_implPtr->operator==(*rhs.m_implPtr);
+	bool operator==(const SmartPtr<Object, Impl>& rhs) const {
+		return pImpl->operator==(*rhs.pImpl);
 	}
 
-	bool operator!=(SmartPtr<Object, Impl>& rhs) {
-		return m_implPtr->operator!=(*rhs.m_implPtr);
+	bool operator!=(const SmartPtr<Object, Impl>& rhs) const {
+		return pImpl->operator!=(*rhs.pImpl);
+	}
+
+	bool operator<(const SmartPtr<Object, Impl>& rhs) const {
+		return pImpl->operator<(*rhs.pImpl);
 	}
 
 	void swap(SmartPtr<Object, Impl>&);
 
 	int getNumReferences() const {
-		return m_implPtr->getNumReferences();
+		return pImpl->getNumReferences();
 	}
 
 private:
 	  // store the pointer to the implementation - if you want to be
 	  // able to swap implementations then you have to store a pointer
 	  // to the base class, utilizing polymorphism here
-	Impl<Object>* m_implPtr;
+	Impl<Object>* pImpl;
 };
 
 
@@ -120,43 +124,44 @@ private:
   // constructs a new Impl with its default constructor
 template<class Object, template<class> class Impl>
 SmartPtr<Object, Impl>::SmartPtr()
+ : pImpl(new Impl<Object>())
 {
 	  // default constructor
-	m_implPtr = new Impl<Object>();
 }
 
 
 template<class Object, template<class> class Impl>
 SmartPtr<Object, Impl>::SmartPtr(Object* (*newFunc) (),
 							     void (*deleteFunc) (Object*))
+ : pImpl(new Impl<Object>(newFunc(), deleteFunc))
 {
 	  // the implementation takes care of what happens when we re-assign
 	  // delete, reset, etc
-	m_implPtr = new Impl<Object>(newFunc(), deleteFunc);
 }
 
 
 template<class Object, template<class> class Impl>
 SmartPtr<Object, Impl>::SmartPtr(void (*deleteFunc) (Object*))
+ : pImpl(new Impl<Object>(deleteFunc))
 {
-	m_implPtr = new Impl<Object>(deleteFunc);
 }
 
 
+  // other is const so that it can be pushed back into containers
 template<class Object, template<class> class Impl>
-SmartPtr<Object, Impl>::SmartPtr(SmartPtr<Object, Impl>& other)
+SmartPtr<Object, Impl>::SmartPtr(const SmartPtr<Object, Impl>& other)
+ : pImpl(new Impl<Object>(*other.pImpl))
 {
-	m_implPtr = new Impl<Object>(*other.m_implPtr);
 }
 
 
   // move constructor
 template<class Object, template<class> class Impl>
 SmartPtr<Object, Impl>::SmartPtr(SmartPtr<Object, Impl>&& mover)
+ : pImpl(new Impl<Object>(std::move(*mover.pImpl)))
 {
 	  // call impl's move constructor - is there a better way than using
 	  // std::move??? I don't think there is
-	m_implPtr = new Impl<Object>(std::move(*mover.m_implPtr));
 }
 
 
@@ -169,7 +174,7 @@ SmartPtr<Object, Impl>& SmartPtr<Object, Impl>::operator=(SmartPtr<Object, Impl>
 	if (this != &rhs) {
 
 		  // take rhs's implementation (operator=)
-		*m_implPtr = *rhs.m_implPtr;
+		*pImpl = *rhs.pImpl;
 
 		/*
 			This is where the BasePtr* vs Impl* trade-off comes in. If I do it as I am
@@ -190,7 +195,7 @@ SmartPtr<Object, Impl>& SmartPtr<Object, Impl>::operator=(SmartPtr<Object, Impl>
 template<class Object, template<class> class Impl>
 void SmartPtr<Object, Impl>::reset(Object* obj, void (*dFunc) (Object*))
 {
-	m_implPtr->reset(obj, dFunc);
+	pImpl->reset(obj, dFunc);
 }
 
 
@@ -202,7 +207,7 @@ SmartPtr<Object, Impl>::~SmartPtr()
 	  // Impl<T>::~Impl() - Impl has to take care
 	  // of allocating the memory, it's part of the 
 	  // implementation
-	delete m_implPtr;
+	delete pImpl;
 }
 
 
@@ -212,11 +217,11 @@ SmartPtr<Object, Impl>::~SmartPtr()
 template<class Object, template<class> class Impl>
 void SmartPtr<Object, Impl>::swap(SmartPtr<Object, Impl>& other) {
 
-	Impl<Object>* thisimpl = m_implPtr;
+	Impl<Object>* thisimpl = pImpl;
 
-	m_implPtr = other.m_implPtr;
+	pImpl = other.pImpl;
 
-	other.m_implPtr = thisimpl;
+	other.pImpl = thisimpl;
 }
 
 #endif

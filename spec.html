@@ -1,0 +1,648 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+ <title>CS32 Homework 1, Winter 2019</title>
+</head>
+<body>
+  <div align="right">
+    Winter 2019 CS 32
+  </div>
+  <div align="center">
+    <h2>Homework 1</h2>
+    <p>
+      <strong>Time due: 11:00 PM Tuesday, January 22</strong>
+    </p>
+  </div>
+  <p>
+    Here is a C++ class definition for an abstract data type <strong>Set
+    of <code>string</code></strong>s, representing the concept of a collection
+    of strings, without duplicates.  (A web server might record unique
+    visitors to a website in a set of strings, for example.)  To make things
+    simpler for you, the case of letters in a string matters, so that the
+    strings <code>Roti</code> and <code>rOtI</code> are <em>not</em>
+    considered duplicates.
+  </p>
+  <pre>
+  class Set
+  {
+    public:
+      Set();         // Create an empty set (i.e., one with no items).
+
+      bool empty();  // Return true if the set is empty, otherwise false.
+
+      int size();    // Return the number of items in the set.
+
+      bool insert(const std::string&amp; value);
+        // Insert value into the set if it is not already present.  Return
+        // true if the value was actually inserted.  Leave the set unchanged
+        // and return false if the value was not inserted (perhaps because it
+        // was already in the set or because the set has a fixed capacity and
+        // is full).
+
+      bool erase(const std::string&amp; value);
+        // Remove the value from the set if present.  Return true if the
+        // value was removed; otherwise, leave the set unchanged and
+        // return false.
+       
+      bool contains(const std::string&amp; value);
+        // Return true if the value is in the set, otherwise false.
+       
+      bool get(int i, std::string&amp; value);
+        // If 0 &lt;= i &lt; size(), copy into value the item in the set that is
+        // strictly greater than exactly i items in the set and return true.
+        // Otherwise, leave value unchanged and return false.
+
+      void swap(Set&amp; other);
+        // Exchange the contents of this set with the other one.
+  };
+  </pre>
+  <p>
+  (When we don't want a function to change a parameter representing a value
+  of the type stored in the set, we pass that parameter by constant
+  reference.  Passing it by value would have been perfectly fine for this
+  problem, but we chose the const reference alternative because that will be
+  more suitable after we make some generalizations in a later problem.)
+  </p>
+  <p>
+  Notice that the comment for the <code>get</code> function implies that for a
+  5-item set ss, <code>ss.get(0, x)</code> will copy the smallest item in the
+  set into x (because the smallest item is greater than 0 items in the set), and
+  <code>ss.get(4, x)</code> will copy the largest item (because the largest item
+  is greater than 4 items in the set).  The words <em>greater than</em>,
+  <em>smallest</em>, etc., are all interpreted in the context of what the
+  <code>></code> operator for <code>string</code> indicates about the relative
+  order of two strings:
+  </p>
+  <pre>
+      Set ss;
+      ss.insert("lavash");
+      ss.insert("roti");
+      ss.insert("chapati");
+      ss.insert("injera");
+      ss.insert("roti");
+      ss.insert("matzo");
+      ss.insert("injera");
+      assert(ss.size() == 5);  // duplicate "roti" and "injera" were not added
+      string x;
+      ss.get(0, x);
+      assert(x == "chapati");  // "chapati" is greater than exactly 0 items in ss
+      ss.get(4, x);
+      assert(x == "roti");  // "roti" is greater than exactly 4 items in ss
+      ss.get(2, x);
+      assert(x == "lavash");  // "lavash" is greater than exactly 2 items in ss
+  </pre>
+  <p>
+  Here's an example of the <code>swap</code> function:
+  </p>
+  <pre>
+      Set ss1;
+      ss1.insert("laobing");
+      Set ss2;
+      ss2.insert("matzo");
+      ss2.insert("pita");
+      ss1.swap(ss2);
+      assert(ss1.size() == 2  &amp;&amp;  ss1.contains("matzo")  &amp;&amp;  ss1.contains("pita")  &amp;&amp;
+             ss2.size() == 1  &amp;&amp;  ss2.contains("laobing"));
+  </pre>
+  <p>
+  Notice that the empty string is just as good a string as any other; you should
+  not treat it in any special way:
+  </p>
+  <pre>
+      Set ss;
+      ss.insert("dosa");
+      assert(!ss.contains(""));
+      ss.insert("tortilla");
+      ss.insert("");
+      ss.insert("focaccia");
+      assert(ss.contains(""));
+      ss.erase("dosa");
+      assert(ss.size() == 3  &amp;&amp  ss.contains("focaccia")  &amp;&amp;  ss.contains("tortilla")  &amp;&amp;
+                  ss.contains(""));
+      string v;
+      assert(ss.get(1, v)  &&  v == "focaccia");
+      assert(ss.get(0, v)  &&  v == "");
+  </pre>
+  <p>
+  When comparing items for <code>insert</code>, <code>erase</code>,
+  <code>contains</code>, and <code>get</code>, just use the <code>==</code>,
+  <code>!=</code>, <code>></code>, etc., operators provided for the string
+  type by the library.  These do case-sensitive comparisons, and that's fine.
+  </p>
+  <p>
+  Here is what you are to do:
+  </p>
+  <ol>
+  <li>
+  <p>
+  Determine which member functions of the Set class should be const member
+  functions (because they do not modify the Set), and change the class
+  declaration accordingly.
+  </p>
+  </li>
+  <li>
+  <p>
+  As defined above, the Set class allows the client to use a set that
+  contains only <code>std::string</code>s.  Someone who wanted to modify the
+  class to contain items of another type, such as only <code>int</code>s or only
+  <code>double</code>s, would have to make changes in many places.  Modify the
+  class definition you produced in the previous problem to use a type alias
+  for all values wherever the original definition used a
+  <code>std::string</code>.  A <em>type alias</em> is a name that is a
+  synonym for some type; here is an example:
+  </p>
+  <pre>
+        // The following line introduces the type alias Number as a synonym
+        // for the type int; anywhere the code uses the name Number, it means
+        // the type int.
+
+      using Number = int;
+
+      int main()
+      {
+          Number total = 0;
+          Number x;
+          while (cin >> x)
+              total += x;
+          cout &lt;&lt; total &lt;&lt; endl;
+      }
+  </pre>
+  <p>
+  The advantage of using the type alias Number is that if we later wish to
+  modify this code to sum a sequence of <code>long</code>s or of
+  <code>double</code>s, we need make a change in only one place:  the using
+  statement introducing the type alias Number.
+  </p><p>
+  (Aside:  Prior to C++11 (and still usable now), the only way to introduce
+  a type alias was to use a <code>typedef</code> statement, e.g.
+  <code>typedef int Number;</code>.  Appendix A.1.8 of the textbook describes
+  <code>typedef</code>.)
+  </p><p>
+  To make the grader's life easier, we'll require that everyone use the same
+  synonym for their type alias:  You must use the name
+  <code>ItemType</code>, with exactly that spelling and case.
+  </p>
+  </li>
+  <li>
+  <p>
+  Now that you have defined an interface for a set class where the item type
+  can be easily changed, implement the class and all its member functions in
+  such a way that the items in a set are contained in a data member that is
+  an array.  (Notice we said an array, not a pointer.  It's not until
+  problem 5 of this homework that you'll deal with a dynamically allocated
+  array.)  A set must be able to hold a maximum of
+  <code>DEFAULT_MAX_ITEMS</code> items, where
+  </p>
+  <pre>
+      const int DEFAULT_MAX_ITEMS = 250;
+  </pre>
+  <p>
+  Test your class for a Set of <code>std::string</code>s.  Place your
+  class definition and inline function implementations (if any) in a file
+  named <code>Set.h</code>, and your non-inline function implementations (if
+  any) in a file named <code>Set.cpp</code>.  (If we haven't yet discussed
+  inline, then if you haven't encountered the topic yourself, all your
+  functions will be non-inline, which is fine.)
+  </p><p>
+  You may add any private data members or private member functions that you
+  like, but you must not add anything to or delete anything from the public
+  interface you defined in the previous problem, nor may you change the
+  function signatures.  There is one exception to this:  If you wish, you
+  may add a public member function with the signature <code>void dump()
+  const</code>.  The intent of this function is that for your own testing
+  purposes, you can call it to print information about the set; we will
+  never call it.  You do not have to add this function if you don't want to,
+  but if you do add it, it must not make any changes to the set; if we
+  were to replace your implementation of this function with one that simply
+  returned immediately, your code must still work correctly.  The
+  <code>dump</code> function must not write to <code>cout</code>, but it's
+  allowed to write to <code>cerr</code>.
+  </p><p>
+  Your implementation of the Set class must be such that the
+  compiler-generated destructor, copy constructor, and assignment operator
+  do the right things.  Write a test program named <code>testSet.cpp</code>
+  to make sure your Set class implementation works properly.  Here is one
+  possible (incomplete) test program:
+  </p>
+  <pre>
+      #include "Set.h"
+      #include &lt;iostream>
+      #include &lt;string>
+      #include &lt;cassert>
+      using namespace std;
+
+      int main()
+      {
+          Set s;
+          assert(s.empty());
+          ItemType x = "arepa";
+          assert( !s.get(42, x)  &amp;&amp;  x == "arepa"); // x unchanged by get failure
+          s.insert("chapati");
+          assert(s.size() == 1);
+          assert(s.get(0, x)  &amp;&amp;  x == "chapati");
+          cout &lt;&lt; "Passed all tests" &lt;&lt; endl;
+      }
+  </pre>
+  <p>
+  Now change (only) the type alias in <code>Set.h</code> so that the Set will
+  contain <code>unsigned long</code>s.  Make no other changes to
+  <code>Set.h</code>, and make no changes to <code>Set.cpp</code>.
+  Verify that your implementation builds correctly and works properly with
+  this alternative main routine (which again, is not a complete test of
+  correctness):
+  </p>
+  <pre>
+      #include "Set.h"
+      #include &lt;iostream>
+      #include &lt;cassert>
+      using namespace std;
+
+      int main()
+      {
+          Set s;
+          assert(s.empty());
+          ItemType x = 9876543;
+          assert( !s.get(42, x)  &amp;&amp;  x == 9876543); // x unchanged by get failure
+          s.insert(123456789);
+          assert(s.size() == 1);
+          assert(s.get(0, x)  &amp;&amp;  x == 123456789);
+          cout &lt;&lt; "Passed all tests" &lt;&lt; endl;
+      }
+  </pre>
+  <p>
+  You may need to flip back and forth a few times to fix your <code>Set.h</code>
+  and <code>Set.cpp</code> code so that the <em>only</em> change to those files
+  you'd need to make to change a set's item type is to the type alias in
+  <code>Set.h</code>.  (When you turn in the project, have the type alias in
+  <code>Set.h</code> specify the item type to be <code>std::string</code>.)
+  </p><p>
+  Except in a using statement introducing a type alias and in the context of
+  <code>#include &lt;string></code> in <code>Set.h</code>, the word
+  <code>string</code> must not appear in <code>Set.h</code> or
+  <code>Set.cpp</code>.  Except in a using statement introducing a type alias,
+  the words <code>unsigned</code> and <code>long</code> must not appear in
+  <code>Set.h</code> or <code>Set.cpp</code>.
+  </p><p>
+  (Implementation note:  The <code>swap</code> function is easily
+  implementable without creating any additional array or additional Set.)
+  </p>
+  </li>
+  <li>
+  <p>
+  Now that you've implemented the class, write some client code that uses
+  it.  We might want a class that records the social security numbers of all
+  people for whom our company has issued a required tax document.  We might
+  issue someone more than one tax document (e.g., one for each account they
+  have), but we'll include their social security number (SSN) only once. 
+  Implement the following class that uses a Set of <code>unsigned
+  long</code>s:
+  </p>
+  <pre>
+      #include "Set.h"
+
+      class SSNSet
+      {
+        public:
+          SSNSet();          // Create an empty SSN set.
+
+          bool add(unsigned long ssn);
+            // Add an SSN to the SSNSet.  Return true if and only if the SSN
+            // was actually added.
+
+          int size() const;  // Return the number of SSNs in the SSNSet.
+
+          void print() const;
+            // Write every SSN in the SSNSet to cout exactly once, one per
+            // line.  Write no other text.
+
+        private:
+          // Some of your code goes here.
+      };
+  </pre>
+  <p>
+  Your SSNSet implementation must employ a data member of type Set that
+  uses the type alias <code>ItemType</code> as a synonym for <code>unsigned
+  long</code>.  (Notice we said a member of type <em>Set</em>, not of type
+  <em>pointer to Set</em>.)  Except to change one line (the type alias in
+  <code>Set.h</code>), you must not make any changes to the
+  <code>Set.h</code> and <code>Set.cpp</code> files you produced for Problem
+  3, so you must not add any member functions or data members to the Set
+  class.  Each of the member functions <code>add</code>, <code>size</code>,
+  and <code>print</code> must delegate as much of the work that they need to
+  do as they can to Set member functions.  (In other words, they must not do
+  work themselves that they can have Set member functions do instead.)  If
+  the compiler-generated destructor, copy constructor, and assignment
+  operator for SSNSet don't do the right thing, declare and implement them. 
+  Write a program to test your SSNSet class.  Name your files
+  <code>SSNSet.h</code>, <code>SSNSet.cpp</code>, and
+  <code>testSSNSet.cpp</code>.
+  </p><p>
+  The words <code>for</code> and <code>while</code> must not appear in
+  <code>SSNSet.h</code> or <code>SSNSet.cpp</code>, except in the
+  implementation of <code>SSNSet::print</code> if you wish.  The characters
+  <code>[</code> (open square bracket) and <code>*</code> must not appear in
+  <code>SSNSet.h</code> or <code>SSNSet.cpp</code>, except in comments
+  if you wish.  You do not have to change <code>unsigned long</code> to
+  <code>ItemType</code> in <code>SSNSet.h</code> and <code>SSNSet.cpp</code>
+  if you don't want to  (since unlike Set, which is designed for a wide
+  variety of item types, SSNSet is specifically designed to work with
+  unsigned longs).  In the code you turn in, <code>SSNSet</code>'s member
+  functions must not call <code>Set::dump</code>.
+  </p>
+  </li>
+  <li>
+  <p>
+  Now that you've created a set type based on arrays whose size is fixed at
+  compile time, let's change the implementation to use a <em>dynamically
+  allocated</em> array of objects.  Copy the three files you produced for
+  problem 3, naming the new files <code>newSet.h</code>,
+  <code>newSet.cpp</code>, and <code>testnewSet.cpp</code>.  Update those
+  files by either adding another constructor or modifying your existing
+  constructor so that a client can do the following:
+  </p>
+  <pre>
+       Set a(1000);   // a can hold at most 1000 distinct items
+       Set b(5);      // b can hold at most 5 distinct items
+       Set c;         // c can hold at most DEFAULT_MAX_ITEMS distinct items
+       ItemType v[6] = { <em>six distinct values of the appropriate type</em> };
+
+         // No failures inserting 5 distinct items into b
+       for (int k = 0; k &lt; 5; k++)
+           assert(b.insert(v[k]));
+
+         // Failure if we try to insert a sixth distinct item into b
+       assert(!b.insert(v[5]));
+
+         // When two Sets' contents are swapped, their capacities are swapped
+         // as well:
+       a.swap(b);
+       assert(!a.insert(v[5])  &amp;&amp;  b.insert(v[5]));
+  </pre>
+  <p>
+  Since the compiler-generated destructor, copy constructor, and assignment
+  operator no longer do the right thing, declare them (as public members) and
+  implement them.  Make no other changes to the public interface of your class.
+  (You are free to make changes to the private members and to the
+  implementations of the member functions, and you may add or remove private
+  members.)  Change the implementation of the <code>swap</code> function so
+  that the number of statement executions when swapping two sets is the same
+  no matter how many items are in the sets.  (You would not satisfy this
+  requirement if, for example, your swap function caused a loop to visit
+  each item in the sets, since the number of statements executed by all the
+  iterations of the loop would depend on the number of items in the sets.) 
+  </p><p>
+  The character <code>[</code> (open square bracket) must not appear in
+  <code>newSet.h</code> (but is fine in <code>newSet.cpp</code>).
+  </p><p>
+  Test your new implementation of the Set class.  (Notice that even
+  though the file is named <code>newSet.h</code>, the name of the class
+  defined therein must still be <code>Set</code>.)
+  </p><p>
+  Verify that your SSNSet class still works properly with this new
+  version of Set (with <code>ItemType</code> being a type alias for
+  <code>unsigned long</code>).  You should not need to change your SSNSet
+  class or implementation in any way, other than to include
+  <code>"newSet.h"</code> instead of <code>"Set.h"</code>.  (For this test,
+  be sure to link with <code>newSet.cpp</code>, not <code>Set.cpp</code>.) 
+  (Before you turn in <code>SSNSet.h</code>, be sure to restore any
+  <code>#include</code>s to <code>"Set.h"</code> instead of
+  <code>"newSet.h"</code>.)
+  </p>
+  </li>
+  </ol>
+  <h3>Turn it in</h3>
+  <p>
+  By Monday, January 21, there will be a link on the class webpage that will
+  enable you to turn in this homework.  Turn in one zip file that contains your
+  solutions to the homework problems.  (Since problem 3 builds on problems 1 and
+  2, you will not turn in separate code for problems 1 and 2.)  If you solve
+  every problem, the zip file you turn in will have nine files (three for
+  each of problems 3, 4, and 5). The files <em>must</em> meet these requirements,
+  or your score on this homework will be severely reduced:
+  </p>
+  <ul>
+  <li><p>
+  Each of the header files <code>Set.h</code>, <code>SSNSet.h</code>,
+  and <code>newSet.h</code> must have an appropriate include guard.  In
+  the files you turn in, the type aliases in <code>Set.h</code> and
+  <code>newSet.h</code> must introduce <code>ItemType</code> as a type alias
+  for <code>std::string</code>.
+  </p></li><li><p>
+  If we create a project consisting of <code>Set.h</code>,
+  <code>Set.cpp</code>, and <code>testSet.cpp</code>, it must build
+  successfully under both g32 and either Visual C++ or clang++.  (Note:  To
+  build an executable using g32 from some, but not all, of the .cpp files in
+  a directory, you list the .cpp files to use in the command.  To build an
+  executable named <code>req1</code> for this requirement, for example,
+  you'd say <code>g32 -o req1 Set.cpp testSet.cpp</code>.)
+  </p></li><li><p>
+  If in <code>Set.h</code> we change <code>ItemType</code> to be a type
+  alias for <code>unsigned long</code>, and then create a project consisting
+  of <code>Set.h</code>, <code>Set.cpp</code>, <code>SSNSet.h</code>,
+  <code>SSNSet.cpp</code>, and <code>testSSNSet.cpp</code>, it must build
+  successfully under both g32 and either Visual C++ or clang++.
+  </p></li><li><p>
+  If we create a project consisting of <code>newSet.h</code>,
+  <code>newSet.cpp</code>, and <code>testnewSet.cpp</code>, it must
+  build successfully under both g32 and either Visual C++ or clang++.
+  </p></li><li><p>
+  If we create a project consisting of <code>newSet.h</code>,
+  <code>newSet.cpp</code>, and <code>testSet.cpp</code>, where in
+  <code>testSet.cpp</code> we change only the
+  <code>#include "Set.h"</code> to <code>#include "newSet.h"</code>,
+  the project must build successfully under both g32 and either Visual C++ or
+  clang++.  (If you try this, be sure to change the <code>#include</code>
+  back to <code>"Set.h"</code> before you turn in <code>testSet.cpp</code>.)
+  </p></li><li><p>
+  The source files you submit for this homework must not contain the word
+  <code>friend</code> or <code>pragma</code> or <code>vector</code>, and must
+  not contain any global variables whose values may be changed during
+  execution.  (Global <em>constants</em> are fine.)
+  </p></li><li><p>
+  No files other than those whose names begin with <code>test</code> may
+  contain code that reads anything from <code>cin</code> or writes anything
+  to <code>cout</code>, except that for problem 4,
+  <code>SSNSet::print</code> must write to <code>cout</code>, and for
+  problem 5, the implementation of the constructor that takes an integer
+  parameter may write a message and exit the program if the integer is
+  negative.  Any file may write to <code>cerr</code> (perhaps for debugging
+  purposes); we will ignore any output written to <code>cerr</code>.
+  </p></li><li><p>
+  You must have an implementation for every member function of Set and
+  SSNSet.  If you can't get a function implemented correctly, its
+  implementation must at least build successfully.  For example, if you
+  don't have time to correctly implement <code>Set::erase</code> or
+  <code>Set::swap</code>, say, here are implementations that meet this
+  requirement in that they at least allow programs to build successfully
+  even though they might execute incorrectly:
+  </p>
+  <pre>
+          bool Set::erase(const ItemType&amp; value)
+          {
+              return true;  // not correct, but at least this compiles
+          }
+
+          void Set::swap(Set&amp; other)
+          {
+              // does nothing; not correct, but at least this compiles
+          }
+  </pre>
+  </p></li><li><p>
+  Given <code>Set.h</code> with the type alias for the Set's item type
+  specifying <code>std::string</code>, if we make no change to your
+  <code>Set.cpp</code>, then if we compile your <code>Set.cpp</code> and
+  link it to a file containing
+  </p>
+  <pre>
+          #include "Set.h"
+          #include &lt;string>
+          #include &lt;iostream>
+          #include &lt;cassert>
+          using namespace std;
+
+          void test()
+          {
+              Set ss;
+              assert(ss.insert("roti"));
+              assert(ss.insert("pita"));
+              assert(ss.size() == 2);
+              assert(ss.contains("pita"));
+              ItemType x = "laobing";
+              assert(ss.get(0, x)  &amp;&amp;  x == "pita");
+              assert(ss.get(1, x)  &amp;&amp;  x == "roti");
+          }
+
+          int main()
+          {
+              test();
+              cout &lt;&lt; "Passed all tests" &lt;&lt; endl;
+          }
+  </pre>
+  <p>
+  the linking must succeed.  When the resulting executable is run, it must
+  write <code>Passed all tests</code> and nothing more to <code>cout</code>
+  and terminate normally.
+  </p></li><li><p>
+  If we successfully do the above, then in <code>Set.h</code> change the
+  type alias for the Set's item type to specify <code>unsigned long</code> as
+  the item type without making any other changes, recompile
+  <code>Set.cpp</code>, and link it to a file containing
+  </p>
+  <pre>
+          #include "Set.h"
+          #include &lt;iostream>
+          #include &lt;cassert>
+          using namespace std;
+
+          void test()
+          {
+              Set uls;
+              assert(uls.insert(20));
+              assert(uls.insert(10));
+              assert(uls.size() == 2);
+              assert(uls.contains(10));
+              ItemType x = 30;
+              assert(uls.get(0, x)  &amp;&amp;  x == 10);
+              assert(uls.get(1, x)  &amp;&amp;  x == 20);
+          }
+
+          int main()
+          {
+              test();
+              cout &lt;&lt; "Passed all tests" &lt;&lt; endl;
+          }
+  </pre>
+  <p>
+  the linking must succeed.  When the resulting executable is run, it must
+  write <code>Passed all tests</code> and nothing more to <code>cout</code>
+  and terminate normally.
+  </p></li><li><p>
+  Given <code>newSet.h</code> with the type alias for the Set's item type
+  specifying <code>std::string</code>, if we make no change to your
+  <code>newSet.cpp</code>, then if we compile your <code>newSet.cpp</code>
+  and link it to a file containing
+  </p>
+  <pre>
+          #include "newSet.h"
+          #include &lt;string>
+          #include &lt;iostream>
+          #include &lt;cassert>
+          using namespace std;
+
+          void test()
+          {
+              Set ss;
+              assert(ss.insert("roti"));
+              assert(ss.insert("pita"));
+              assert(ss.size() == 2);
+              assert(ss.contains("pita"));
+              ItemType x = "laobing";
+              assert(ss.get(0, x)  &amp;&amp;  x == "pita");
+              assert(ss.get(1, x)  &amp;&amp;  x == "roti");
+          }
+
+          int main()
+          {
+              test();
+              cout &lt;&lt; "Passed all tests" &lt;&lt; endl;
+          }
+  </pre>
+  <p>
+  the linking must succeed.  When the resulting executable is run, it must
+  write <code>Passed all tests</code> and nothing more to <code>cout</code>
+  and terminate normally.
+  </p></li><li><p>
+  If we successfully do the above, then in <code>newSet.h</code> change the
+  type alias for the Set's item type to specify <code>unsigned long</code> as
+  the item type without making any other changes, recompile
+  <code>newSet.cpp</code>, and link it to a file containing
+  </p>
+  <pre>
+          #include "newSet.h"
+          #include &lt;iostream>
+          #include &lt;cassert>
+          using namespace std;
+
+          void test()
+          {
+              Set uls;
+              assert(uls.insert(20));
+              assert(uls.insert(10));
+              assert(uls.size() == 2);
+              assert(uls.contains(10));
+              ItemType x = 30;
+              assert(uls.get(0, x)  &amp;&amp;  x == 10);
+              assert(uls.get(1, x)  &amp;&amp;  x == 20);
+          }
+
+          int main()
+          {
+              test();
+              cout &lt;&lt; "Passed all tests" &lt;&lt; endl;
+          }
+  </pre>
+  <p>
+  the linking must succeed.  When the resulting executable is run, it must
+  write <code>Passed all tests</code> and nothing more to <code>cout</code>
+  and terminate normally.
+  </p></li><li><p>
+  During execution, your program must not perform any undefined actions, such
+  as accessing an array element out of bounds, or dereferencing a null or
+  uninitialized pointer.
+  </p></li>
+  </ul>
+  <p>
+  Notice that we are not requiring any particular content in
+  <code>testSet.cpp</code>, <code>testSSNSet.cpp</code>, and
+  <code>testnewSet.cpp</code>, as long as they meet the requirements above.
+  Of course, the intention is that you'd use those files for the test code that
+  you'd write to convince yourself that your implementations are correct.
+  Although we will throughly evaluate your implementations for correctness,
+  for homeworks, unlike for projects, we will not grade the thoroughness of
+  your test cases.  Incidentally, for homeworks, unlike for projects, we will
+  also not grade your program commenting.
+  </p>
+</body>
+</html>

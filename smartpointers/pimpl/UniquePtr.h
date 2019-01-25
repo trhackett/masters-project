@@ -98,18 +98,16 @@ using namespace std;
 template<class T>
 UniquePtr<T>::UniquePtr()
   // call the BasePtrImpl constructor first
-  : m_pointee(BasePtr<T>::m_pointee)
+  : m_pointee(BasePtr<T>::m_pointee), m_deleteFunc(nullptr)
 {
-	m_deleteFunc = nullptr;
 }
 
   // normal constructor
 template<class T>
 UniquePtr<T>::UniquePtr(T* pointee, void (*dFunc) (T*))
   // call the BasePtrImpl with these args first and init reference
-  : BasePtr<T>(pointee), m_pointee(BasePtr<T>::m_pointee)
+  : BasePtr<T>(pointee), m_pointee(BasePtr<T>::m_pointee), m_deleteFunc(dFunc)
 {
-	m_deleteFunc = dFunc;
 }
 
 
@@ -118,17 +116,16 @@ UniquePtr<T>::UniquePtr(T* pointee, void (*dFunc) (T*))
   // m_pointee to nullptr
 template<class T>
 UniquePtr<T>::UniquePtr(void (*dFunc) (T*))
- : m_pointee(BasePtr<T>::m_pointee)
+ : m_pointee(BasePtr<T>::m_pointee), m_deleteFunc(dFunc)
 {
-	m_deleteFunc = dFunc;
 }
 
 
 template<class T>
 UniquePtr<T>::UniquePtr(UniquePtr<T>& other)
- : BasePtr<T>(other.m_pointee), m_pointee(BasePtr<T>::m_pointee)
+ : BasePtr<T>(other.m_pointee), m_pointee(BasePtr<T>::m_pointee),
+   m_deleteFunc(other.m_deleteFunc)
 {
-	m_deleteFunc = other.m_deleteFunc;
 	  // other can't point to it anymore
 	other.m_pointee = nullptr;
 }
@@ -137,10 +134,9 @@ UniquePtr<T>::UniquePtr(UniquePtr<T>& other)
 template<class T>
 UniquePtr<T>::UniquePtr(UniquePtr<T>&& moved)
   // fine to just give BasePtr m_pointee since that's all it cares about
- : BasePtr<T>(moved.m_pointee), m_pointee(BasePtr<T>::m_pointee)
+ : BasePtr<T>(moved.m_pointee), m_pointee(BasePtr<T>::m_pointee),
+   m_deleteFunc(moved.m_deleteFunc)
 {
-	m_deleteFunc = moved.m_deleteFunc;
-
 	  // they forget so no two things have it at once
 	moved.m_pointee = nullptr;
 }

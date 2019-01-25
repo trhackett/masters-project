@@ -2,8 +2,6 @@
 #ifndef SHARED_PTR_H
 #define SHARED_PTR_H
 
-#include <iostream>
-using namespace std;
 #include "BasePtr.h"
 
 template<class T>
@@ -66,16 +64,6 @@ private:
 		int getCount() const    { return numRefs; }
 	};
 
-	  // I can't think of a way around storing a dynamically
-	  // allocated RefCount. Multiple objects need to know about
-	  // the same one so we'd want ideally to use a SharedPtr
-	  // but we can't do that
-	RefCount* m_refCount;
-
-	  // pointer to a function that returns void
-	  // and takes in a pointer to a T (deletes it)
-	void (*m_deleteFunc) (T*);
-
 	  // the main storage is a raw pointer to the
 	  // allocated memory - notice that this follows
 	  // in a cheap way the PImpl idiom since the real
@@ -87,6 +75,16 @@ private:
 	  // care of the freeing of memory!!!
 	T*& m_pointee;
 
+	  // pointer to a function that returns void
+	  // and takes in a pointer to a T (deletes it)
+	void (*m_deleteFunc) (T*);
+
+	  // I can't think of a way around storing a dynamically
+	  // allocated RefCount. Multiple objects need to know about
+	  // the same one so we'd want ideally to use a SharedPtr
+	  // but we can't do that
+	RefCount* m_refCount;
+
 	  // function that decrements the reference since you no longer
 	  // point to the object, checks to see if you're the last pointer
 	  // to it and if so and it exists, deletes it
@@ -97,21 +95,19 @@ private:
 
 template<class T>
 SharedPtr<T>::SharedPtr()
- : BasePtr<T>(), m_pointee(BasePtr<T>::m_pointee)
+ : BasePtr<T>(), m_pointee(BasePtr<T>::m_pointee), m_deleteFunc(nullptr),
+   m_refCount(new RefCount)
 {
-	m_deleteFunc = nullptr;
-	m_refCount = new RefCount;
 }
 
 
   // become the first reference pointing to this object
 template<class T>
 SharedPtr<T>::SharedPtr(T* pointee, void (*dFunc) (T*))
- : BasePtr<T>(pointee), m_pointee(BasePtr<T>::m_pointee)
+ : BasePtr<T>(pointee), m_pointee(BasePtr<T>::m_pointee),
+   m_deleteFunc(dFunc), m_refCount(new RefCount)
 
 {
-	m_deleteFunc = dFunc;
-	m_refCount = new RefCount;
 }
 
 
@@ -119,9 +115,9 @@ SharedPtr<T>::SharedPtr(T* pointee, void (*dFunc) (T*))
 template<class T>
 SharedPtr<T>::SharedPtr(SharedPtr<T>& other)
   // make a copy of the pointer
- : BasePtr<T>(other.m_pointee), m_pointee(BasePtr<T>::m_pointee)
+ : BasePtr<T>(other.m_pointee), m_pointee(BasePtr<T>::m_pointee),
+   m_deleteFunc(other.m_deleteFunc), m_refCount(other.m_refCount)
 {
-	m_deleteFunc = other.m_deleteFunc;
 	  // if other is pointing to nullptr and the RefCount
 	  // is 0, then you better not add anything to RefCount
 	  // since then you'll try to delete null memory
@@ -130,7 +126,6 @@ SharedPtr<T>::SharedPtr(SharedPtr<T>& other)
 	  // still point to it and have multiple reference because
 	  // if you give one of them memory later, you should
 	  // make sure you're counting all the references
-	m_refCount = other.m_refCount;
 	if (m_refCount != nullptr) {
 		m_refCount->increment();
 	}
@@ -139,12 +134,11 @@ SharedPtr<T>::SharedPtr(SharedPtr<T>& other)
 
 template<class T>
 SharedPtr<T>::SharedPtr(SharedPtr<T>&& mover)
- : BasePtr<T>(mover.m_pointee), m_pointee(BasePtr<T>::m_pointee)
+ : BasePtr<T>(mover.m_pointee), m_pointee(BasePtr<T>::m_pointee),
+   m_deleteFunc(mover.m_deleteFunc), m_refCount(mover.m_refCount)
 {
-	m_refCount = mover.m_refCount;
 	  // ref count hasn't changed since mover no longer points to
 	  // the object and this now does - it's a wash
-	m_deleteFunc = mover.m_deleteFunc;
 
 	mover.m_pointee = nullptr;
 	mover.m_refCount = nullptr;

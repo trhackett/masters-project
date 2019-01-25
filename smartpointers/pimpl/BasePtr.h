@@ -33,23 +33,27 @@ public:
 
 
 	  // are they pointing to the same thing?
-	bool operator==(T* rhs) const {
+	bool operator==(const T* rhs) const {
 		return m_pointee == rhs;
 	}
 
-	bool operator!=(T* rhs) const {
+	bool operator!=(const T* rhs) const {
 		return m_pointee != rhs;
 	}
 
 	  // are they the same smart ptr? - I think actually
 	  // this should also answer whether or not they are pointing
 	  // to the same thing.
-	bool operator==(BasePtr<T>& rhs) const {
+	bool operator==(const BasePtr<T>& rhs) const {
 		return m_pointee == rhs.m_pointee;
 	}
 
-	bool operator!=(BasePtr<T>& rhs) const {
+	bool operator!=(const BasePtr<T>& rhs) const {
 		return m_pointee != rhs.m_pointee;
+	}
+
+	bool operator<(const BasePtr<T>& rhs) const {
+		return m_pointee < rhs.m_pointee;
 	}
 
 	void swap(BasePtr<T>&);

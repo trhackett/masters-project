@@ -4,7 +4,16 @@
 
 #include <iostream>
 #include <string>
+#include <vector>
 using namespace std;
+
+int* intAlloc() {
+	return new int;
+}
+
+void intDelete(int* i) {
+	delete i;
+}
 
 int testUniquePtr() {
 
@@ -197,7 +206,7 @@ int testUniquePtr() {
 		}
 
 	} // done with string array
-
+	
 	return 0;
 }
 
@@ -332,7 +341,41 @@ int testSharedPtr() {
 			return 18;
 		}
 
+		Coord* c2 = &movee[3];
+		c2->x = 8;
+		c2->y = 14;
+
+		if ((movee + 3)->x != 8 ||
+			(movee + 3)->y != 14)
+		{
+			return 19;
+		}
+
 	}  // free object array
+
+	{
+
+		SmartPtr<int, SharedPtr> intptr(
+			&intAlloc, &intDelete);
+
+		*intptr = -5;
+
+		if (*intptr != -5) {
+			return 20;
+		}
+
+		for (int i = 0; i < 100; i++) {
+			SmartPtr<int, SharedPtr> cpy(intptr);
+
+			if (*cpy != -5) {
+				return 21;
+			}
+
+			if (cpy.getNumReferences() != 2) {
+				return 22;
+			}
+		}
+	}
 
 	return 0;
 }

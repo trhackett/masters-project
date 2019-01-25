@@ -1,4 +1,29 @@
 
+This lab is meant to be a first week / intro lab. It requires knowledge in the
+following areas:
+ - templates (specifically template templates)
+ - protected inheritance
+ - function pointers (lambda expressions)
+ - memory management and smart pointers (as a concept, not necessarily
+   the C++ API)
+ - move semantics
+ - pImpl
+
+You'll likely find the following resources useful (I know I did):
+<a href="https://en.cppreference.com/w/cpp/language/template_parameters">Template Parameters</a>
+<a href="http://valgrind.org/docs/">valgrind</a>
+<a href="https://www.gnu.org/software/make/">makefile</a>
+Herb Sutterand Andrei Alexandrescu, <a href="https://www.oreilly.com/library/view/c-coding-standards/0321113586/">C++ Coding Standards: 101 Rules, Guidelines, and Best Practices</a> Pearson Education Inc. (2005)
+	Rules 1, 3, 14, 35, 36, 48, 53, 56, 66, 67
+Andrei Alexandrescu, <a href="http://erdani.com/index.php/books/modern-c-design/">Modern C++ Design: Generic Programming and Design Patterns Applied</a>, Addison-Wesley (2001)
+	Chapters 1 and 7
+
+Honestly the SmartPtr class should likely be the BasePtr class. Meaning it shouldn't
+actually exist. We're using pImpl where we should probably be using polymorphism.
+For now, we'll say this is ok and actually allows us some flexibility to write
+new types of smart pointer and SmartPtr can point to it. But at the end of the day
+I think polymorphism would have worked equally (if not better than) the templating
+we did here.
 
 I think as programmers we can admit that we might be good, but we are not perfect.
 When we're solving some problem or providing some interface, we tend to miss some
@@ -35,4 +60,90 @@ more importantly) what we don't do. This will be more clear as I specify the pub
 interface.
 
 1) Basic pointer functionality.
+
+When memory is allocated with new, it returns to us a pointer to the memory that's
+been allocated. Between the time that it's allocated and freed with delete (assuming
+the program hasn't leaked memory), there are various operations that we can perform
+on that pointer. We're going to write a templated SmartPtr class that provides this
+same functionality but also takes care of the allocation and freeing of memory so
+that the programmer doesn't have to remember.
+
+One of the templated parameters is the type of object being held. The other is the
+type of implementation the SmartPtr uses. Much like the unique_ptr and shared_ptr
+classes c++11 provides, we will provide two implementations to the user: a UniquePtr
+and a SharedPtr.
+
+Following the pImpl idiom ("remove the implementation details of a class from its
+object representation by placing them in a separate class, accessed through an opaque
+pointer"), you will have the SmartPtr class do very little and move the functionality
+out to a different class. There are two reasons for this.
+
+1) Generality. We can add more variations on the memory management and minimize the
+amount of code we change. Rather than having to change the SmartPtr class to accomodate
+different functionalities, we can write a new class that implements that
+functionality and then the user can create a SmartPtr that stores a pointer to that
+new implementation
+
+2) 
+
+You goal is to make a SmartPtr class that provides all of the normal functionality of
+a raw pointer (such as <int* i = new int(1)>). For example, we should be able to swap
+every raw pointer in this main function with a SmartPtr, remove the calls to new and
+delete, and the program should run as written without leaking memory.
+
+int main() {
+	int* intptr = new int(1);
+	assert(*intptr == 1);
+
+	int* intArr = new int[10];
+	for(int i = 0; i < 10; i++) {
+		intArr[i] = i*i;
+	}
+
+	for (int i = 0; i < 10; i++) {
+		assert(*(intArr + i) == i*i);
+	}
+
+	assert(intptr != nullptr && intArr != nullptr);
+
+	int* intptr2 = intptr;
+	assert(intptr2 == intptr);
+
+	int* elemptr = intArr + 6;
+	elemptr = elemptr - 3;
+	assert(elemptr[0] == 9);
+	assert(elemptr == intArr + 3);
+
+	struct Nums {
+		int x, y;
+		int sum() { return x + y; }
+	};
+
+	Nums* num = new Nums();
+	*num.x = 5;
+	*num.y = 12;
+	assert(num->sum() == 17);
+
+	delete intptr;
+	delete [] intArr;
+	delete num;
+}
+
+
+SPEC:
+
+Consider the following program... (the one above)
+
+If the programmer leaves out the delete, there are leaks... BAD
+
+We want make a class of pointers that takes care of freeing and allocating
+ memory for us. SmartPtrs
+
+It should allow the same basic operations as regular pointers. But do the freeing
+ for us without us having to call it.
+
+There are two types: UniquePtrs and SharedPtrs. The object a UniquePtr points to
+ cannot be pointed to by any other pointer. The object a SharedPtr points to can be
+ pointed to by any number of other SharedPtrs but it must be careful to not free
+ the memory until the last thing pointed to it is gone.
 
