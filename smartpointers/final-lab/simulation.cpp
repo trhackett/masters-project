@@ -77,7 +77,7 @@ Simulation::~Simulation()
 
 
 
-void Simulation::runSimulation() {
+double Simulation::runSimulation() {
 
 	  // each run of the for loop is an iteration
 	for (int i = 0; i < numIterations; i++) {
@@ -103,18 +103,17 @@ void Simulation::runSimulation() {
 	}
 
 	  // before you're done, print out how long each car took on average
-	computeStats();
+	return computeStats();
 }
 
-void Simulation::computeStats() {
+double Simulation::computeStats() {
 	double ave = 0.0;
 
 	for (size_t i = 0; i < startToFinishTimes.size(); i++) {
 		ave += startToFinishTimes[i];
 	}
 
-	cout << "Cars took on average " << ave/startToFinishTimes.size()
-	     << "ms to complete route" << endl;
+	return ave / (double)startToFinishTimes.size();
 }
 
 

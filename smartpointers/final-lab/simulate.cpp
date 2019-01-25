@@ -4,7 +4,8 @@
 
 using namespace std;
 
-void run(Timer& t, double& constructTime, double& simulationTime) {
+void run(Timer& t, double& constructTime, double& simulationTime,
+		 double& aveStartToFinishTime) {
 	
 	// restart time to account for function call time
 	t.start();
@@ -21,7 +22,7 @@ void run(Timer& t, double& constructTime, double& simulationTime) {
 	t.start();
 
 	// start simulation
-	sim.runSimulation();
+	aveStartToFinishTime = sim.runSimulation();
 	simulationTime = t.elapsed();
 
 	// restart time
@@ -30,11 +31,15 @@ void run(Timer& t, double& constructTime, double& simulationTime) {
 }
 
 int main() {
-	double constructTime, simulationTime, destructAndReturnTime;
+	double constructTime, simulationTime, destructAndReturnTime,
+	       aveStartToFinishTime;
 	// start timer
 	Timer t;
-	run(t, constructTime, simulationTime);
+	run(t, constructTime, simulationTime, aveStartToFinishTime);
 	destructAndReturnTime = t.elapsed();
+
+	cout << "Cars took on average " << aveStartToFinishTime
+	     << "ms to complete route" << endl;
 
 	cout << "Construction time " << constructTime << "ms" << endl;
 	cout << "Simulation took " << simulationTime << "ms" << endl;

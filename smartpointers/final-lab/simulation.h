@@ -124,7 +124,7 @@ class Simulation {
 public:
 	Simulation(int r, int c, int sR, int sC, int eR, int eC, int Fz, int numI);
 	~Simulation();
-	void runSimulation();
+	double runSimulation();
 
 	int getEndRow() const  { return endRow; }
 	int getEndCol() const  { return endCol; }
@@ -161,7 +161,7 @@ private:
 
 	  // only basic stats
 	vector<double> startToFinishTimes;
-	void computeStats();
+	double computeStats();
 };
 
 #endif
