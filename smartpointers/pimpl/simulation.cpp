@@ -69,6 +69,19 @@ Simulation::Simulation(int rows, int cols)
 }
 
 
+  // use the destructor only to print statistics
+Simulation::~Simulation() {
+	double ave;
+
+	for (size_t i = 0; i < startToFinishTimes.size(); i++) {
+		ave += startToFinishTimes[i];
+	}
+
+	cout << "Cars took on average " << ave/startToFinishTimes.size()
+	     << "ms to complete route" << endl;
+}
+
+
 
 
 void Simulation::runSimulation(int numIterations) {
@@ -87,6 +100,10 @@ void Simulation::runSimulation(int numIterations) {
 		for (; s != e; ++s) {
 			RouteComputer rc;
 			if (moveCarInDirection(*s, rc.getNextMove(*s, *this))) {
+
+				  // register how long it took to get from start to finish
+				startToFinishTimes.push_back((*s)->getTime());
+				  // don't track it anymore
 				s = allCars.erase(s);
 			}
 		}
@@ -126,6 +143,7 @@ bool Simulation::moveCarInDirection(SmartPtr<Car, SharedPtr> carPtr, Direction d
 	  // if you can move in that direction, then remove the car from the intersection
 	  // you're at currently and insert yourself at the one you're going to
 	if (getRowColInDirection(nextRow, nextCol, d)) {
+
 		  // if the car is done, remove it
 		if (nextRow == endRow && nextCol == endCol) {
 			iGrid[currRow][currCol]->removeCar(carPtr);

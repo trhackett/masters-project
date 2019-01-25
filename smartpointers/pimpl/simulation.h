@@ -123,6 +123,7 @@ private:
 class Simulation {
 public:
 	Simulation(int r, int c);
+	~Simulation();
 	void runSimulation(int numIterations);
 
 	int getEndRow() const  { return endRow; }
@@ -154,6 +155,9 @@ private:
 	void insertNewCar();
 	  // takes a car and a direction and moves it in that direction
 	bool moveCarInDirection(SmartPtr<Car, SharedPtr> carPtr, Direction d);
+
+	  // only basic stats
+	vector<double> startToFinishTimes;
 };
 
 #endif
