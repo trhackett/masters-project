@@ -158,6 +158,7 @@ private:
 
 	  // only basic stats
 	vector<double> startToFinishTimes;
+	void computeStats();
 };
 
 #endif

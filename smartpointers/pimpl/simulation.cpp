@@ -70,15 +70,8 @@ Simulation::Simulation(int r, int c, int sR, int sC, int eR, int eC, int F)
 
 
   // use the destructor only to print statistics
-Simulation::~Simulation() {
-	double ave;
-
-	for (size_t i = 0; i < startToFinishTimes.size(); i++) {
-		ave += startToFinishTimes[i];
-	}
-
-	cout << "Cars took on average " << ave/startToFinishTimes.size()
-	     << "ms to complete route" << endl;
+Simulation::~Simulation()
+{
 }
 
 
@@ -108,6 +101,20 @@ void Simulation::runSimulation(int numIterations) {
 			}
 		}
 	}
+
+	  // before you're done, print out how long each car took on average
+	computeStats();
+}
+
+void Simulation::computeStats() {
+	double ave = 0.0;
+
+	for (size_t i = 0; i < startToFinishTimes.size(); i++) {
+		ave += startToFinishTimes[i];
+	}
+
+	cout << "Cars took on average " << ave/startToFinishTimes.size()
+	     << "ms to complete route" << endl;
 }
 
 
