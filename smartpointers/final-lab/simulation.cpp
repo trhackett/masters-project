@@ -224,14 +224,16 @@ Direction RouteComputer::getNextMove(SmartPtr<Car, SharedPtr> car, Simulation& s
 	  // init empty
 	priority_queue<node, vector<node>, decltype(cmpNodes)> openList(cmpNodes);
 
-	  // initialize closedList
+	  // initialize closedList and fvals
 	vector<vector<node>> closedList(sim.getMaxRows());
+	vector<vector<double>> closedFVals(sim.getMaxRows());
+	vector<vector<double>> openFVals(sim.getMaxRows());
+
 	for (int i = 0; i < sim.getMaxRows(); i++) {
 		closedList[i] = vector<node>(sim.getMaxCols());
+		closedFVals[i] = vector<double>(sim.getMaxCols(), -1);
+		openFVals[i] = vector<double>(sim.getMaxCols(), -1);
 	}
-
-	map<pair<int, int>, double> closedFVals;
-	map<pair<int, int>, double> openFVals;
 
 	  // starting point goes in open list, zero f
 	openList.push(node(car->row(), car->col(), -1, -1, 0, 0));
@@ -275,7 +277,7 @@ Direction RouteComputer::getNextMove(SmartPtr<Car, SharedPtr> car, Simulation& s
 						!betterOptionIn(child.row, child.col, child.f, closedFVals))
 					{
 						openList.push(child);
-						openFVals[pair<int, int>(child.row, child.col)] = child.f;
+						openFVals[child.row][child.col] = child.f;
 					}
 				}
 			}
@@ -283,7 +285,7 @@ Direction RouteComputer::getNextMove(SmartPtr<Car, SharedPtr> car, Simulation& s
 
 		  // add it to the closed vals
 		closedList[parent.row][parent.col] = parent;
-		closedFVals[pair<int, int>(parent.row, parent.col)] = parent.f;
+		closedFVals[parent.row][parent.col] = parent.f;
 	}
 
 	return Bad;
@@ -306,16 +308,15 @@ Direction RouteComputer::backtrack(int r, int c, int startRow, int startCol,
 }
 
 bool RouteComputer::betterOptionIn(int r, int c, double f,
-									 map<pair<int, int>, double>& fVals)
+									 vector<vector<double>>& fVals)
 {
-	map<pair<int, int>, double>::iterator it = fVals.find(pair<int, int>(r, c));
-
-	  // if there's an f value in there and it's better than the one we have, return
-	  // true
-	if (it != fVals.end() && it->second < f) {
+	  // if there's an f value in there that's better than this one
+	  // return true
+	if (fVals[r][c] != -1 && fVals[r][c] < f) {
 		return true;
 	}
 
+	  // or else there's not a better option so return false
 	return false;
 }
 

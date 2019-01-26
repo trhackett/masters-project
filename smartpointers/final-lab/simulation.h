@@ -108,7 +108,7 @@ private:
 
 	Direction backtrack(int r, int c, int startRow, int startCol,
 					    vector<vector<node>>& closedList);
-	bool betterOptionIn(int r, int c, double f, map<pair<int, int>, double>& fVals);
+	bool betterOptionIn(int r, int c, double f, vector<vector<double>>& fVals);
 	Direction evalDirection(int fromR, int fromC, int toR, int toC);
 
 	void printClosedList(vector<vector<node>>& l);
