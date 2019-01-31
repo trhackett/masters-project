@@ -30,27 +30,12 @@ double Car::getHValue(int row, int col, Simulation* sim) {
 }
 
 
-  // cars leave intersections
-void Intersection::removeCar(SmartPtr<Car, SharedPtr> carPtr) {
-	set<SmartPtr<Car, SharedPtr>>::iterator it = cars.find(carPtr);
-
-	  // if it's in there, remove it
-	if (it != cars.end()) {
-		cars.erase(it);
-	}
-}
-
-  // and cars come into intersections
-void Intersection::addCar(SmartPtr<Car, SharedPtr> carPtr) {
-	cars.insert(carPtr);
-}
-
-
-Simulation::Simulation(int r, int c, int sR, int sC, int eR, int eC, int F, int numI)
+Simulation::Simulation(int r, int c, int sR, int sC, int eR, int eC, int F, int numI, int carM)
  : maxRows(r), maxCols(c), startRow(sR), startCol(sC),
-   endRow(eR), endCol(eC), carFrequency(F), numIterations(numI)
+   endRow(eR), endCol(eC), carFrequency(F),
+   carMovement(carM), numIterations(numI)
 {
-	  // intersections is currently empty - we need to set Up the
+	  // intersections is currently empty - we need to set up the
 	  // environment by creating a bunch of intersection with their
 	  // delete functions
 	for (int i = 0; i < maxRows; i++) {
@@ -62,7 +47,7 @@ Simulation::Simulation(int r, int c, int sR, int sC, int eR, int eC, int F, int 
 	for (int i = 0; i < maxRows; i++) {
 		for (int j = 0; j < maxCols; j++) {
 			iGrid[i][j].reset(
-				new Intersection,
+				new Intersection(),
 				[] (Intersection* i) { delete i; });
 		}
 	}
@@ -80,13 +65,22 @@ Simulation::~Simulation()
 double Simulation::runSimulation() {
 
 	  // each run of the for loop is an iteration
-	for (int i = 0; i < numIterations; i++) {
+	for (currentIteration = 0; currentIteration < 1; currentIteration++) {
 
 		  // potentially insert another car
-		if (i % carFrequency == 0) {
+		if (currentIteration % carFrequency == 0) {
 			insertNewCar();
 		}
 
+		  // each intersection has the chance to move carMovement cars
+		for (size_t i = 0; i < iGrid.size(); i++) {
+			for (size_t j = 0; j < iGrid[i].size(); j++) {
+				moveCarsAtIntersection(i, j);
+			}
+		}
+
+
+/*
 		  // each car has the chance to move
 		list<SmartPtr<Car, SharedPtr>>::iterator s = allCars.begin();
 		list<SmartPtr<Car, SharedPtr>>::iterator e = allCars.end();
@@ -100,10 +94,28 @@ double Simulation::runSimulation() {
 				s = allCars.erase(s);
 			}
 		}
+*/
 	}
 
 	  // before you're done, print out how long each car took on average
 	return computeStats();
+}
+
+void Simulation::moveCarsAtIntersection(int row, int col) {
+	  // move at most carMovement cars per intersection
+	int carsMoved = 0;
+	while (iGrid[row][col]->hasCars() && carsMoved++ < carMovement) {
+
+		RouteComputer rc;
+		SmartPtr<Car, SharedPtr> c = iGrid[row][col]->getCarToMove();
+
+		  // if moveCarInDirection returns true, the car is out of
+		  // the simulation so mark its time
+		if (moveCarInDirection(c, rc.getNextMove(c, *this))) {
+			  // register how long it took to get from start to finish
+			startToFinishTimes.push_back(c->getTime());
+		}
+	}
 }
 
 double Simulation::computeStats() {
@@ -127,7 +139,7 @@ void Simulation::insertNewCar() {
 	temp->init(startRow, startCol, &manhattenDistance);
 
 	  // allCars needs to track it for movement
-	allCars.push_back(temp);
+	// allCars.push_back(temp);
 
 	  // it is located in an intersection
 	iGrid[startRow][startCol]->addCar(temp);
@@ -150,14 +162,17 @@ bool Simulation::moveCarInDirection(SmartPtr<Car, SharedPtr> carPtr, Direction d
 	  // you're at currently and insert yourself at the one you're going to
 	if (getRowColInDirection(nextRow, nextCol, d)) {
 
+		cout << currRow << "," << currCol << " " << nextRow << "," << nextCol << endl;
+
 		  // if the car is done, remove it
 		if (nextRow == endRow && nextCol == endCol) {
-			iGrid[currRow][currCol]->removeCar(carPtr);
+			cout << "made it!" << endl;
+			iGrid[currRow][currCol]->removeCar();
 			return true;
 		}
 
 		iGrid[nextRow][nextCol]->addCar(carPtr);
-		iGrid[currRow][currCol]->removeCar(carPtr);
+		iGrid[currRow][currCol]->removeCar();
 
 		carPtr->setRow(nextRow);
 		carPtr->setCol(nextCol);

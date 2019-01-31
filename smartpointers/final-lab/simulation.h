@@ -8,8 +8,6 @@
 #include "timer.h"
 #include <vector>
 #include <list>
-#include <set>
-#include <map>
 using namespace std;
 
   // potentially four directions a car can move in
@@ -55,25 +53,28 @@ private:
    ============================================================================ */
 class Intersection {
 public:
-	Intersection() { }
+	Intersection()
+	{ }
 
 	  // get the number of cars at the intersection (may want more data points)
 	  // to support more heuristics, that's fine
-	int getNumCars() const  { return cars.size(); }
+	int getNumCars() const { return cars.size(); }
+	  // see if there are cars
+	bool hasCars() const   { return !cars.empty(); }
+	  // get the car that's been waiting the longest
+	SmartPtr<Car, SharedPtr> getCarToMove() const
+		{ return cars.front(); }
 
 	  // make adjustments to the set of cars here
-	void removeCar(SmartPtr<Car, SharedPtr> carPtr);
-	void addCar(SmartPtr<Car, SharedPtr> carPtr);
+	void removeCar()
+		{ cars.pop_front(); }
+	void addCar(SmartPtr<Car, SharedPtr> carPtr)
+		{ cars.push_back(carPtr); }
 
 
 private:
-	set<SmartPtr<Car, SharedPtr>> cars;
+	list<SmartPtr<Car, SharedPtr>> cars;
 };
-
-
-  // stored as a two dimensional array of smart pointers to an
-  // intersection
-using IntersectionGrid = vector<vector<SmartPtr<Intersection, UniquePtr>>>;
 
 /* ============================================================================
 	Route Computer
@@ -122,7 +123,8 @@ private:
 
 class Simulation {
 public:
-	Simulation(int r, int c, int sR, int sC, int eR, int eC, int Fz, int numI);
+
+	Simulation(int r, int c, int sR, int sC, int eR, int eC, int Fz, int numI, int numC);
 	~Simulation();
 	double runSimulation();
 
@@ -137,6 +139,10 @@ public:
 	bool getRowColInDirection(int& row, int& col, Direction d) const;
 
 private:
+	  // stored as a two dimensional array of smart pointers to an
+	  // intersection
+	using IntersectionGrid = vector<vector<SmartPtr<Intersection, UniquePtr>>>;
+
 	  // 2D array (vector) of Intersections
 	IntersectionGrid iGrid;
 
@@ -147,15 +153,21 @@ private:
 
 	  // release a car every carFrequency iterations
 	int carFrequency;
+	  // number of cars that can leave intersection each tick
+	int carMovement;
 
 	  // number of iterations the simulation goes through
 	int numIterations;
+	  // current iteration
+	int currentIteration;
 
-	list<SmartPtr<Car, SharedPtr>> allCars;
+	// list<SmartPtr<Car, SharedPtr>> allCars;
 
 	  // newly inserted cars start at startRow,startCol and do nothing their
 	  // first iteration
 	void insertNewCar();
+	  // takes coordinates and moves the cars there
+	void moveCarsAtIntersection(int row, int col);
 	  // takes a car and a direction and moves it in that direction
 	bool moveCarInDirection(SmartPtr<Car, SharedPtr> carPtr, Direction d);
 

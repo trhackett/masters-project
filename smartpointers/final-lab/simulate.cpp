@@ -15,7 +15,8 @@ void run(Timer& t, double& constructTime, double& simulationTime,
 				   0, 0,    // startRow and startCol
 				   9, 9,    // endRow and endCol
 				   5,       // car frequency
-				   100);    // number of iterations  
+				   100,     // number of iterations 
+				   5);      // number of cars that leave intersection each iteration
 	constructTime = t.elapsed();
 
 	// restart timer
