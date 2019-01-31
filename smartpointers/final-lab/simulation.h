@@ -8,6 +8,7 @@
 #include "timer.h"
 #include <vector>
 #include <list>
+#include <iostream>
 using namespace std;
 
   // potentially four directions a car can move in
@@ -23,24 +24,29 @@ class Car {
 public:
 	Car() { }
 
-	void init(int row, int col, double (*hFunc) (int, int, Simulation*));
+	void init(int row, int col, double (*hFunc) (int, int, const Simulation*));
 
 	  // basic get/set functions
 	void restartTime()    { m_timer.start(); }
-	int getTime() const   { return m_timer.elapsed(); }
+	int getTime() const   { return m_timer.elapsed() - routeComputeTime; }
 	int row() const       { return m_row; }
 	int col() const       { return m_col; }
+	int getLastIterMoved() const { return lastIterMoved; }
 
 	void setRow(int r)    { m_row = r; }
 	void setCol(int c)    { m_col = c; }
+	void setLastIterMoved(int l) { lastIterMoved = l; }
+	void addComputationTime(double d) { routeComputeTime += d; }
 
 	  // calling the heuristic function
-	double getHValue(int row, int col, Simulation* sim);
+	double getHValue(int row, int col, const Simulation* sim);
 
 private:
 	Timer m_timer;
+	double routeComputeTime;
 	int m_row, m_col;
-	double (*m_heuristicFunc) (int, int, Simulation*);
+	int lastIterMoved;
+	double (*m_heuristicFunc) (int, int, const Simulation*);
 };
 
 
@@ -85,7 +91,8 @@ public:
 	  // when getting the next move, you have complete knowledge
 	  // of the simulation at that time - you know how many cars
 	  // are at each intersection and you also know the goal
-	Direction getNextMove(SmartPtr<Car, SharedPtr> carPtr, Simulation& sim);
+	Direction getNextMove(SmartPtr<Car, SharedPtr> carPtr, const Simulation& sim,
+						  double& dT);
 
 private:
 	  // node struct and comparison function only for A*
@@ -133,10 +140,20 @@ public:
 	int getMaxRows() const { return maxRows; }
 	int getMaxCols() const { return maxCols; }
 	  // must return by const reference to obey the promise the const function makes
-	SmartPtr<Intersection, UniquePtr> getIntersectionAt(int r, int c) const
+	const SmartPtr<Intersection, UniquePtr>& getIntersectionAt(int r, int c) const
 		{ return iGrid[r][c]; }
 
 	bool getRowColInDirection(int& row, int& col, Direction d) const;
+
+	void printSim() const {
+		for (size_t i = 0; i < iGrid.size(); i++) {
+			for (size_t j = 0; j < iGrid.size(); j++) {
+				cout << iGrid[i][j]->getNumCars() << " ";
+			}
+			cout << endl;
+		}
+		cout << endl;
+	}
 
 private:
 	  // stored as a two dimensional array of smart pointers to an
@@ -161,15 +178,13 @@ private:
 	  // current iteration
 	int currentIteration;
 
-	// list<SmartPtr<Car, SharedPtr>> allCars;
-
 	  // newly inserted cars start at startRow,startCol and do nothing their
 	  // first iteration
 	void insertNewCar();
 	  // takes coordinates and moves the cars there
 	void moveCarsAtIntersection(int row, int col);
 	  // takes a car and a direction and moves it in that direction
-	bool moveCarInDirection(SmartPtr<Car, SharedPtr> carPtr, Direction d);
+	bool moveCarInDirection(SmartPtr<Car, SharedPtr> carPtr, Direction d, double& cT);
 
 	  // only basic stats
 	vector<double> startToFinishTimes;

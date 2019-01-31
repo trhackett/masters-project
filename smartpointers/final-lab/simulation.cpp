@@ -2,30 +2,31 @@
 #include "simulation.h"
 #include <cstdlib>
 #include <queue>
-#include <iostream>
 
 /* ============================================================================
 	Potential heuristic functions
    ============================================================================ */ 
-double manhattenDistance(int row, int col, Simulation* sim) {
+double manhattenDistance(int row, int col, const Simulation* sim) {
 	return abs(row - sim->getEndRow()) +
        abs(col - sim->getEndCol());
 }
 
-double avoidTraffic(int row, int col, Simulation* sim) {
+double avoidTraffic(int row, int col, const Simulation* sim) {
 	return sim->getIntersectionAt(row, col)->getNumCars();
 }
 
 
-void Car::init(int row, int col, double (*hFunc) (int, int, Simulation*))
+void Car::init(int row, int col, double (*hFunc) (int, int, const Simulation*))
 {
 	m_row = row;
 	m_col = col;
 	m_heuristicFunc = hFunc;
+	lastIterMoved = -1;
+	routeComputeTime = 0.0;
 	m_timer.start();
 }
 
-double Car::getHValue(int row, int col, Simulation* sim) {
+double Car::getHValue(int row, int col, const Simulation* sim) {
 	return m_heuristicFunc(row, col, sim);
 }
 
@@ -60,15 +61,13 @@ Simulation::~Simulation()
 }
 
 
-
-
 double Simulation::runSimulation() {
 
 	  // each run of the for loop is an iteration
-	for (currentIteration = 0; currentIteration < 1; currentIteration++) {
+	for (currentIteration = 0; currentIteration < numIterations; currentIteration++) {
 
 		  // potentially insert another car
-		if (currentIteration % carFrequency == 0) {
+		for (int i = 0; i < carFrequency; i++) {
 			insertNewCar();
 		}
 
@@ -78,23 +77,6 @@ double Simulation::runSimulation() {
 				moveCarsAtIntersection(i, j);
 			}
 		}
-
-
-/*
-		  // each car has the chance to move
-		list<SmartPtr<Car, SharedPtr>>::iterator s = allCars.begin();
-		list<SmartPtr<Car, SharedPtr>>::iterator e = allCars.end();
-		for (; s != e; ++s) {
-			RouteComputer rc;
-			if (moveCarInDirection(*s, rc.getNextMove(*s, *this))) {
-
-				  // register how long it took to get from start to finish
-				startToFinishTimes.push_back((*s)->getTime());
-				  // don't track it anymore
-				s = allCars.erase(s);
-			}
-		}
-*/
 	}
 
 	  // before you're done, print out how long each car took on average
@@ -104,17 +86,28 @@ double Simulation::runSimulation() {
 void Simulation::moveCarsAtIntersection(int row, int col) {
 	  // move at most carMovement cars per intersection
 	int carsMoved = 0;
-	while (iGrid[row][col]->hasCars() && carsMoved++ < carMovement) {
+	while (iGrid[row][col]->hasCars() && carsMoved < carMovement) {
 
 		RouteComputer rc;
 		SmartPtr<Car, SharedPtr> c = iGrid[row][col]->getCarToMove();
 
+		  // impossible for a car that was moved to this intersection
+		  // this iteration to be ahead of one that was moved here in
+		  // a previous iteration (thanks queue) so break when you 
+		  // find one that just moved here
+		if (c->getLastIterMoved() == currentIteration) {
+			break;
+		}
+
 		  // if moveCarInDirection returns true, the car is out of
 		  // the simulation so mark its time
-		if (moveCarInDirection(c, rc.getNextMove(c, *this))) {
+		double computationTime;
+		if (moveCarInDirection(c, rc.getNextMove(c, *this, computationTime), computationTime)) {
 			  // register how long it took to get from start to finish
 			startToFinishTimes.push_back(c->getTime());
 		}
+
+		carsMoved++;
 	}
 }
 
@@ -138,9 +131,6 @@ void Simulation::insertNewCar() {
 	  // functions into here
 	temp->init(startRow, startCol, &manhattenDistance);
 
-	  // allCars needs to track it for movement
-	// allCars.push_back(temp);
-
 	  // it is located in an intersection
 	iGrid[startRow][startCol]->addCar(temp);
 }
@@ -150,8 +140,9 @@ void Simulation::insertNewCar() {
   // one or it wouldn't even have been considered by getNextMove()
 
   // this returns true if the car has left the simulation and needs to be
-  // removed from allCars
-bool Simulation::moveCarInDirection(SmartPtr<Car, SharedPtr> carPtr, Direction d)
+  // removed from it's intersection
+bool Simulation::moveCarInDirection(SmartPtr<Car, SharedPtr> carPtr, Direction d,
+									double& computationTime)
 {
 	int currRow = carPtr->row();
 	int currCol = carPtr->col();
@@ -162,11 +153,8 @@ bool Simulation::moveCarInDirection(SmartPtr<Car, SharedPtr> carPtr, Direction d
 	  // you're at currently and insert yourself at the one you're going to
 	if (getRowColInDirection(nextRow, nextCol, d)) {
 
-		cout << currRow << "," << currCol << " " << nextRow << "," << nextCol << endl;
-
 		  // if the car is done, remove it
 		if (nextRow == endRow && nextCol == endCol) {
-			cout << "made it!" << endl;
 			iGrid[currRow][currCol]->removeCar();
 			return true;
 		}
@@ -176,6 +164,8 @@ bool Simulation::moveCarInDirection(SmartPtr<Car, SharedPtr> carPtr, Direction d
 
 		carPtr->setRow(nextRow);
 		carPtr->setCol(nextCol);
+		carPtr->setLastIterMoved(currentIteration);
+		carPtr->addComputationTime(computationTime);
 	}
 
 	return false;
@@ -234,7 +224,10 @@ bool Simulation::getRowColInDirection(int& row, int& col, Direction d) const
 
 
   // this is where A* happens
-Direction RouteComputer::getNextMove(SmartPtr<Car, SharedPtr> car, Simulation& sim) {
+Direction RouteComputer::getNextMove(SmartPtr<Car, SharedPtr> car, const Simulation& sim,
+									 double& computeTime)
+{
+	Timer computeTimer;
 
 	  // init empty
 	priority_queue<node, vector<node>, decltype(cmpNodes)> openList(cmpNodes);
@@ -275,8 +268,10 @@ Direction RouteComputer::getNextMove(SmartPtr<Car, SharedPtr> car, Simulation& s
 
 					  // and backtrack until you're where the car is, return
 					  // the direction it should move in
-					return backtrack(parent.row, parent.row,
+					Direction ret = backtrack(parent.row, parent.row,
 								     car->row(), car->col(), closedList);
+					computeTime = computeTimer.elapsed();
+					return ret;
 				}
 
 				  // if it's in the closed list don't check it again
@@ -303,6 +298,7 @@ Direction RouteComputer::getNextMove(SmartPtr<Car, SharedPtr> car, Simulation& s
 		closedFVals[parent.row][parent.col] = parent.f;
 	}
 
+	computeTime = computeTimer.elapsed();
 	return Bad;
 }
 
