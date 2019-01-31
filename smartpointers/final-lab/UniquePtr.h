@@ -15,6 +15,16 @@
     programmer from having to explicitly call delete.
 */
 
+/*
+	Need this->basePointee
+
+	The reason why this is necessary is that C++ doesn’t consider superclass
+	templates for name resolution (because then they are dependent names and
+	dependent names are not considered). It works when you use Superclass<int>
+	because that’s not a template (it’s an instantiation of a template) and
+	thus its nested names are not dependent names.
+*/
+
 #ifndef UNIQUE_PTR_H
 #define UNIQUE_PTR_H
 
@@ -73,9 +83,6 @@ private:
 	  // and we're extending some of it's functionality 
 	  // without inheriting form it (which you can't do)
 
-	  // store a reference to a pointer so that this one is
-	  // an alias for the base class's pointer.
-	T*& m_pointee;
 	  // pointer to a function that returns void
 	  // and takes in a pointer to a T (deletes it)
 	void (*m_deleteFunc) (T*);
@@ -98,7 +105,7 @@ using namespace std;
 template<class T>
 UniquePtr<T>::UniquePtr()
   // call the BasePtrImpl constructor first
-  : m_pointee(BasePtr<T>::m_pointee), m_deleteFunc(nullptr)
+  : m_deleteFunc(nullptr)
 {
 }
 
@@ -106,7 +113,7 @@ UniquePtr<T>::UniquePtr()
 template<class T>
 UniquePtr<T>::UniquePtr(T* pointee, void (*dFunc) (T*))
   // call the BasePtrImpl with these args first and init reference
-  : BasePtr<T>(pointee), m_pointee(BasePtr<T>::m_pointee), m_deleteFunc(dFunc)
+  : BasePtr<T>(pointee), m_deleteFunc(dFunc)
 {
 }
 
@@ -116,29 +123,29 @@ UniquePtr<T>::UniquePtr(T* pointee, void (*dFunc) (T*))
   // m_pointee to nullptr
 template<class T>
 UniquePtr<T>::UniquePtr(void (*dFunc) (T*))
- : m_pointee(BasePtr<T>::m_pointee), m_deleteFunc(dFunc)
+ : m_deleteFunc(dFunc)
 {
 }
 
 
 template<class T>
 UniquePtr<T>::UniquePtr(UniquePtr<T>& other)
- : BasePtr<T>(other.m_pointee), m_pointee(BasePtr<T>::m_pointee),
+ : BasePtr<T>(other.basePointee),
    m_deleteFunc(other.m_deleteFunc)
 {
 	  // other can't point to it anymore
-	other.m_pointee = nullptr;
+	other.basePointee = nullptr;
 }
 
   // move constructor
 template<class T>
 UniquePtr<T>::UniquePtr(UniquePtr<T>&& moved)
-  // fine to just give BasePtr m_pointee since that's all it cares about
- : BasePtr<T>(moved.m_pointee), m_pointee(BasePtr<T>::m_pointee),
+  // fine to just give BasePtr basePointee since that's all it cares about
+ : BasePtr<T>(moved.basePointee),
    m_deleteFunc(moved.m_deleteFunc)
 {
 	  // they forget so no two things have it at once
-	moved.m_pointee = nullptr;
+	moved.basePointee = nullptr;
 }
 
 template<class T>
@@ -162,13 +169,11 @@ UniquePtr<T>& UniquePtr<T>::operator=(UniquePtr<T>& rhs) {
 		clearMemory();
 
 		  // point to the other one's memory
-		BasePtr<T>::m_pointee = rhs.BasePtr<T>::m_pointee;
-		m_pointee = BasePtr<T>::m_pointee;
+		this->basePointee = rhs.basePointee;
 		m_deleteFunc = rhs.m_deleteFunc;   // learn how to delete it
 
 		  // rhs needs to forget - so only i have ownership
-		rhs.m_pointee = nullptr;
-		rhs.BasePtr<T>::m_pointee = nullptr;
+		rhs.basePointee = nullptr;
 	}
 
 	return *this;
@@ -195,10 +200,9 @@ template<class T>
 void UniquePtr<T>::reset(T* objPtr, void (*dFunc) (T*)) {
 
 	  // if you're reseting to the same object, do nothing
-	if (m_pointee != objPtr) {
+	if (this->basePointee != objPtr) {
 		clearMemory();
-		BasePtr<T>::m_pointee = objPtr;
-		m_pointee = BasePtr<T>::m_pointee;
+		this->basePointee = objPtr;
 		m_deleteFunc = dFunc;
 	}
 }
@@ -212,10 +216,10 @@ template<class T>
 void UniquePtr<T>::clearMemory() {
 
 	  // free the memory if it's allocated
-	if (m_pointee != nullptr && m_deleteFunc != nullptr) {
-		m_deleteFunc(m_pointee);  // free the memory
+	if (this->basePointee != nullptr && m_deleteFunc != nullptr) {
+		m_deleteFunc(this->basePointee);
 		  // remember that it's freed - avoid double deletion!!!
-		m_pointee = nullptr;
+		this->basePointee = nullptr;
 	}
 }
 

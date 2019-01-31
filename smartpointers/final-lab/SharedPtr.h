@@ -70,10 +70,7 @@ private:
 	  // implementation of a pointer is the raw pointer
 	  // and we're extending some of it's functionality 
 	  // without inheriting form it (which you can't do)
-
-	  // refers to the same thing BasePtr points to but takes
-	  // care of the freeing of memory!!!
-	T*& m_pointee;
+	  // you get the pointer from the base class
 
 	  // pointer to a function that returns void
 	  // and takes in a pointer to a T (deletes it)
@@ -95,7 +92,7 @@ private:
 
 template<class T>
 SharedPtr<T>::SharedPtr()
- : BasePtr<T>(), m_pointee(BasePtr<T>::m_pointee), m_deleteFunc(nullptr),
+ : BasePtr<T>(), m_deleteFunc(nullptr),
    m_refCount(new RefCount)
 {
 }
@@ -104,7 +101,7 @@ SharedPtr<T>::SharedPtr()
   // become the first reference pointing to this object
 template<class T>
 SharedPtr<T>::SharedPtr(T* pointee, void (*dFunc) (T*))
- : BasePtr<T>(pointee), m_pointee(BasePtr<T>::m_pointee),
+ : BasePtr<T>(pointee),
    m_deleteFunc(dFunc), m_refCount(new RefCount)
 
 {
@@ -115,7 +112,7 @@ SharedPtr<T>::SharedPtr(T* pointee, void (*dFunc) (T*))
 template<class T>
 SharedPtr<T>::SharedPtr(SharedPtr<T>& other)
   // make a copy of the pointer
- : BasePtr<T>(other.m_pointee), m_pointee(BasePtr<T>::m_pointee),
+ : BasePtr<T>(other.basePointee),
    m_deleteFunc(other.m_deleteFunc), m_refCount(other.m_refCount)
 {
 	  // if other is pointing to nullptr and the RefCount
@@ -134,13 +131,13 @@ SharedPtr<T>::SharedPtr(SharedPtr<T>& other)
 
 template<class T>
 SharedPtr<T>::SharedPtr(SharedPtr<T>&& mover)
- : BasePtr<T>(mover.m_pointee), m_pointee(BasePtr<T>::m_pointee),
+ : BasePtr<T>(mover.basePointee),
    m_deleteFunc(mover.m_deleteFunc), m_refCount(mover.m_refCount)
 {
 	  // ref count hasn't changed since mover no longer points to
 	  // the object and this now does - it's a wash
 
-	mover.m_pointee = nullptr;
+	mover.basePointee = nullptr;
 	mover.m_refCount = nullptr;
 }
 
@@ -160,13 +157,12 @@ SharedPtr<T>& SharedPtr<T>::operator=(SharedPtr<T>& rhs) {
 
 	  // if they are different and they don't already refer to
 	  // the same data, then share the reference
-	if (this != &rhs && m_pointee != rhs.m_pointee) {
+	if (this != &rhs && this->basePointee != rhs.basePointee) {
 
 		  // if you're the last reference, delete
 		removeReference();
 
-		BasePtr<T>::m_pointee = rhs.m_pointee;  // copy the pointer over
-		m_pointee = BasePtr<T>::m_pointee;      // refer to base's pointer
+		this->basePointee = rhs.basePointee;    // copy the pointer over
 		m_refCount = rhs.m_refCount;            // same reference count
 
 		if (m_refCount != nullptr) {
@@ -190,13 +186,12 @@ template<class T>
 void SharedPtr<T>::reset(T* objptr, void (*dFunc) (T*))
 {
 	  // no change if they are already pointing to the same thing
-	if (m_pointee != objptr) {
+	if (this->basePointee != objptr) {
 		  // no longer pointing to your thing
 		removeReference();
 
 		  // pointing to new thing with new ref count
-		BasePtr<T>::m_pointee = objptr;
-		m_pointee = BasePtr<T>::m_pointee;
+		this->basePointee = objptr;
 		m_deleteFunc = dFunc;
 		m_refCount = new RefCount;
 	}
@@ -215,8 +210,8 @@ void SharedPtr<T>::removeReference() {
 		  // if you're the last reference, delete
 		if (m_refCount->getCount() == 0) {
 			  // if it's pointing to something, delete it
-			if (m_pointee != nullptr && m_deleteFunc != nullptr) {
-				m_deleteFunc(m_pointee);
+			if (this->basePointee != nullptr && m_deleteFunc != nullptr) {
+				m_deleteFunc(this->basePointee);
 			}
 
 			  // always delete reference

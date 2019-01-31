@@ -14,46 +14,46 @@ public:
 	  // the same no matter what type of SmartPtr it
 	  // is, implementation independent
 	T& operator*() const {
-		return *m_pointee;
+		return *basePointee;
 	}
 
 	T* operator->() const {
-		return m_pointee;
+		return basePointee;
 	}
 
 	T& operator[](int offset) const {
-		return m_pointee[offset];
+		return basePointee[offset];
 	}
 	T* operator+(int offset) const {
-		return m_pointee + offset;
+		return basePointee + offset;
 	}
 	T* operator-(int offset) const {
-		return m_pointee - offset;
+		return basePointee - offset;
 	}
 
 
 	  // are they pointing to the same thing?
 	bool operator==(const T* rhs) const {
-		return m_pointee == rhs;
+		return basePointee == rhs;
 	}
 
 	bool operator!=(const T* rhs) const {
-		return m_pointee != rhs;
+		return basePointee != rhs;
 	}
 
 	  // are they the same smart ptr? - I think actually
 	  // this should also answer whether or not they are pointing
 	  // to the same thing.
 	bool operator==(const BasePtr<T>& rhs) const {
-		return m_pointee == rhs.m_pointee;
+		return basePointee == rhs.basePointee;
 	}
 
 	bool operator!=(const BasePtr<T>& rhs) const {
-		return m_pointee != rhs.m_pointee;
+		return basePointee != rhs.basePointee;
 	}
 
 	bool operator<(const BasePtr<T>& rhs) const {
-		return m_pointee < rhs.m_pointee;
+		return basePointee < rhs.basePointee;
 	}
 
 	void swap(BasePtr<T>&);
@@ -65,19 +65,19 @@ public:
 
 protected:
 	  // pointer to the allocated object
-	T* m_pointee;
+	T* basePointee;
 };
 
 
 template<class T>
 BasePtr<T>::BasePtr()
- : m_pointee(nullptr) 
+ : basePointee(nullptr) 
 { }
 
   // track the allocated object and know how to delete it
 template<class T>
 BasePtr<T>::BasePtr(T* objptr)
- : m_pointee(objptr)
+ : basePointee(objptr)
 { }
 
   // dummy destructor since we need it
