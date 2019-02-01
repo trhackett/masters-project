@@ -262,6 +262,30 @@
   <h3>Part 2 Simple Road Simulator</h3>
 
   <p>
+    Now we're going to write an application that heavily relies on <code>SmartPtr</code>s
+    to see some of the benefit. Specifically, we're going to write a simple simulator
+    of a road network with cars flowing through it. No one likes to sit in traffic and
+    everyone wants to take the fastest route from point A to point B. Unfortunately if
+    everyone took the same route, there would be so much congestion no one would ever
+    make it their destination (see the 405 mere blocks from campus for an illustration).
+    We'd like to figure out the best way to get a number of cars to their destination in
+    on average the fastest time possible. We already know that A* search which gives us
+    complexity exponential to the depth of the solution (even better with a reasonable
+    heuristic) and allows us to specify which factors effect the routing decision using
+    different heuristic functions.
+  </p>
+
+  <p>
+    In order to explore which heurstics give us the best performance, we need to some
+    reproducible setting in which we can test out some heuristics. So we'd like a
+    simulator that can specify the density of cars (rate at which they enter the
+    simulation), their movement (how many can leave an intersection), a route
+    computation algorithm, and a heuristic for that algorithm. That way, by varying
+    these parameters, we can evaluate how well each heurstic performs in different
+    settings.
+  </p>
+
+  <p>
     To simulate a network of roads and vehicles moving through it, we'll make the
     reduction that the network is a two-dimensional grid of intersections. It takes
     one "iteration" of the simulation for each car to move from one intersection to
@@ -275,9 +299,8 @@
   </p>
 
   <ol>
-
     <il>
-      <p>a. it must not store ANY raw pointers.</p>
+      <p>a. it must not store or use ANY raw pointers.</p>
     </il>
 
     <il>
@@ -290,14 +313,16 @@
       <ul>
         <il>
           <p class=p.small>
-            - <code>numRows/numCols</code>: number\n rows/columns in the network
+            - <code>numRows,numCols</code>: number of rows/columns in the network
             (<em><code>(numRows*numCols)</code> is the number of intersections</em>)<br>
-            - <code>startRow/startCol</code>: row/column each car enters on<br>
-            - <code>endRow/endCol</code>: row/column each car exits on<br>
-            - <code>carFreq</code>: insert a new car every carFreq
+            - <code>startRow,startCol</code>: row/column each car enters on<br>
+            - <code>endRow,endCol</code>: row/column each car exits on<br>
+            - <code>carRate</code>: insert this many new cars each iteration
             interations<br>
             - <code>numIterations</code>: number of iterations the simulation
             goes through
+            - <code>carMovement</code>: number of cars that can leave each intersection
+            per iteration
           </p>
         </il>
       </ul>
@@ -312,41 +337,50 @@
       <p>
         e. At the end of the simulation, it should print out the average amount
         of time (in ms) it took each car to successfully get from
-        startRow,startCol to endRow,endCol to get there. Any cars that didn't
-        make it don't get factored into the statistic. It's very rudimentary.
+        startRow,startCol to endRow,endCol. Any cars that didn't
+        make it don't get factored into the statistic. Be sure you factor out the
+        time it takes to compute the route, we can assume each car has an impossibly
+        fast processor so can perform any route computation immediately.
+        It's very rudimentary.
       </p>
     </il>
 
     <il>
       <p>f. You must use Professor Smallberg's Timer class (<strong>timer.h</strong>) 
-      so we have consistent results.</p>
+      so we have consistent results between students.</p>
     </il>
   </ol>
 
   <p>
-    Each iteration, every car has the chance to move. Cars can only move
-    in one of four directions: 
+    Each iteration, at most carMovement cars per intersection can move to an adjactent
+    intersection. Cars can only move in one of four directions: 
     <code>Up</code>, <code>Right</code>, <code>Down</code>, or <code>Left</code>. 
     To compute the
-    optimal move, each car must use <em>A* search</em> each iteration. You can vary
+    optimal move, each car must use <em>A* search</em> each iteration. You can write your own
+    and vary
     which heuristic function they use to compute the <code>h</code> value of each intersection.
     Heuristic functions take the following form:
   </p>
 
   <pre>
         // returns a double, takes in coordinates of an intersection
-        // and the Simulation
-      double heuristic(int row, int col, Simulation& sim);
+        // and a const reference to the simulation
+      double heuristic(int row, int col, <strong>const</strong> Simulation& sim);
   </pre>
 
   <p>An interation of the simulation consists of the following:</p>
   <ol><il>
     <p class=p.small>
       - potentially inserting a new car<br>
-      - moving each car in the simulation (in a direction the car computes)<br>
+      - moving carMovement cars per intersection (in a direction the car computes)<br>
       - removing the car from the simulation if it's reached the end<br>
     </p>
   </il></ol>
+
+  <p>Once the simulation is over it should return the average time it took the cars to
+  get from startRow,startCol to endRow,endCol. Remember to factor out the time it
+  takes to compute the route or else you find some heuristics perform arbitrarily
+  better than some other smarter heuristic.</p>
 
   <p>
     This simulation is admittedly rudimentary. Once you've got it working and
@@ -355,14 +389,16 @@
     <ol><il>
     <p class=p.small>
       - heuristics: which ones can you think of that get cars there the fastest?<br>
-      - traffic model: it's unlikely that intersections can actually suuport an
-      number of cars. It could be interesting to block off full intersections.
-      Also, it would be smart if cars could balance the load of the network. Is
-      there a way to weight the movement of a car depending on how full the
-      intersection is? For example, maybe only a certain number of cars can leave
-      an intersection each iteration.<br>
+      - traffic model: it's unlikely that intersections can actually support an
+      infinite number of cars. It could be interesting to block off full intersections.
+      <br>
       - accident simulation: what happens if there is an accident at an intersection
       and none of the cars can move? How would they factor that into their route.<br>
+      - actual roads: instead of this 2D grid of intersections, can you confure up
+      a way for the simulator to look like actual roads with distances and times to
+      get from one to another. We make the strong assumption here that it takes the same
+      amount of time to get from one intersection to an adjacent on, which is not
+      true in real life. It would be interesting to make a more accurate model.<br>
     </p>
   </il></ol>
 
