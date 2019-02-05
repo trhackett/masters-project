@@ -257,6 +257,15 @@
   <p>
     Once you've finished implementing <code>SmartPtr</code>, <code>UniquePtr</code>,
     and <code>SharedPtr</code>, you should ensure it passes all of the tests in ptr-test.cpp.
+    Keep in mind, these class <em>do not prevent memory leaks.</em> They are only there
+    to be better than raw pointers, to take the requirement of explicitly calling <code>new</code>
+    and
+    <code>delete</code> away from the coder and make this class do it instead. You can still cause
+    double
+    deletions by making a raw pointer that points to what a <code>SmartPtr</code> has created and deleting
+    it. You can cause a memory leak if you have a <code>SmartPtr</code> allocate an array and then you
+    increment that pointers value. It's not perfect, but it saves us the headache of
+    freeing memory when we're not doing any pointer arithmetic, just allocating objects.
   </p>
 
   <h3>Part 2 Simple Road Simulator</h3>
