@@ -1,0 +1,125 @@
+
+Consider the following code segment:
+
+{
+	int i = 0;                                       // 1
+	int j = i+2;                                     // 2
+
+	vector<int> intVec(10, i);                       // 3
+	for (; i < intVec.size();                        // 4
+	     i++)                                        // 5
+	{
+	    ...
+	}
+
+	int& iref = i;                                   // 6
+	int&& jref = 0;                                  // 7
+	vector<int> vec = vector<int>()                  // 8
+
+	int func(double d) {                             // 9
+		return d*2;                                  // 10
+	}
+
+	func(10)                                         // 11
+
+	enum Color { red, yellow, blue };                // 12
+
+	class Manatee { ... };
+	void func3(Manatee m) { ... }
+	func3(Manatee());                                // 13
+
+	int arr[5];
+	*(arr+3) = 3;                                    // 14
+	arr[4] = 3;                                      // 15
+
+	int& func2(int i) {
+		return i;
+	}
+
+	int g = 10;
+	func2(g);                                        // 16
+	func2(g) + 2;                                    // 17
+
+	int&& func4(int i) {
+		return move(i);                              // 18
+	}
+
+	func4(g);                                        // 19
+	int&& rref = static_cast<int&&>(g)               // 20
+
+	struct intStruct {
+		int val;
+		intStruct&& operator+(intStruct iS) {
+			return intStruct(val + iS.val);
+		}
+		intStruct(int i) : val(i) { }
+	};
+
+	struct intStruct {
+		int val;
+
+		intStruct&& operator+(intStruct iS) {
+			return move(intStruct(val + iS.val));    // 21
+		}
+		
+		intStruct(int i) : val(i) { }
+	};
+
+	intStruct iS1(4);
+	intStruct iS2(5);
+	intStruct&& iS3 = iS1 + iS2;                     // 22
+
+	struct S {
+		int m;
+	};
+
+	S&& func5();
+
+	func5().m;                                       // 23
+	int n = S().m;                                   // 24
+
+	int arr[10];
+	int* p = arr;                                    // 25
+
+	int (*pFunc) (double) = func                     // 26
+
+}
+
+For the following questions, indicate if the expression from the code
+above is a (A) lvalue, (B) xvalue, (C) prvalue
+
+"i"                             line 1     (A)
+"0"                             line 1     (C)
+"i+2"                           line 2     (C)
+"j"                             line 2     (A)
+"intVec"                        line 3     (A)
+"intVec.size()"                 line 4     (C)
+"i++"                           line 5     (C)
+"iref"                          line 6     (A)
+"i"                             line 6     (A)
+"jref"                          line 7     (A)
+"vector<int>()"                 line 8     (C)
+"func"                          line 9     (A)
+"d"                             line 9     (A)
+"d*2"                           line 10    (C)
+"func(10)"                      line 11    (C)
+"red"                           line 12    (C)
+"Manatee()"                     line 13    (C)
+"(arr+3)"                       line 14    (C)
+"*(arr+3)"                      line 14    (A)
+"arr[4]"                        line 15    (A)
+"func2(g)"                      line 16    (A)
+"func2(g) + 2"                  line 17    (C)
+"move(i)"                       line 18    (B)
+"func4(g)"                      line 19    (B)
+"static_cast<int&&>(g)"         line 20    (B)
+"intStruct(val + iS.val)"       line 21    (C)
+"move(intStruct(val + iS.val"   line 21    (B)
+"iS1 + iS2"                     line 22    (B)
+"iS3"                           line 22    (A)
+"func5()"                       line 23    (B)
+"func5().m"                     line 23    (C)
+"S()"                           line 24    (B)
+"S().m"                         line 24    (C)
+"arr"                           line 25    (C)
+"func"                          line 26    (C)

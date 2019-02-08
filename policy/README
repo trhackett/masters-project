@@ -1,0 +1,66 @@
+
+From Modern C++ Design...
+
+"
+Partial template specialization gives you the ability to specialize a class
+template for only some of its arguments. For example, given the definition
+	template<class T, class U> class SmartPtr { ... };
+you can specialize SmartPtr<T, U> for Widget and any other type using the
+following syntax:
+	template<classU> class SmartPtr<Widget, U> { ... };
+"
+
+I hadn't thought of this but it's a really nice way to provide some special
+functionality for a class you know things about. Templates are so good because
+of their compile-time nature.
+
+template latent problems:
+1. cannot specialize data members, just functions
+2. if template class has more than one parameter, you can't specialize individual
+member functions (page 7)
+3. can't provide multiple default value/implementation of a member function
+    -- I can't think of a time you'd want to provide more than one where you
+    can't leverage some other quality to achieve the same goal. For example
+    say you want a specialized implementation that works on a bunch of objects
+    of some type that you've defined. Well you can have them all inherit from
+    the same base class and write a specialized function that takes a pointer
+    of type base class and it will be called on all those derived classes thanks
+    to polymorphism.
+
+    -- nevermind, polymorphism can't be leveraged here like I thought because that
+    would involve making the templated class a Base pointer but actually be an 
+    object of type DerivedX, but this doesn't work, it's just going to store a Base
+    class object. This is the big difference between compile-time and runtime here.
+
+A bit on destructors. You may want a class to inherit from a Base class and then manage
+that class with a pointer of type Base. In the case of Policies, policy classes don't
+manage any data, so we expect their destructor to be empty. If that's not the case,
+you may want to reconsider how your policy is set up. But anyways, calling delete
+on a pointer of type Base is going to be a problem because it won't destroy the derived
+class. Unless you make the destructor virtual, but hurts performance unnecessarily. It's
+a small overhead but there's no point in making it virtual because it should be empty
+anyways. So it's better to have a non-virtual protected destructor in the base policy
+class so that ONLY derived classes still can call it and calling delete on a pointer
+of type Base is a compiler error (our goal).
+
+Ok so using multiple inheritance allows you to just call the functions directly rather
+than having to maintain an object of that templated type. For example:
+
+template<class T>
+class SomeCheckingPolicy {
+public:
+	bool doCheck(T* pointee) { ... }
+};
+
+template<class T, template<class> class CheckingPolicy>
+class Pointer : public CheckingPolicy<T>
+{
+public:
+    T* operator->() {
+        if (doCheck(pointee)) {
+            return pointee;
+        }
+    }  
+private:
+    T* pointee;
+};

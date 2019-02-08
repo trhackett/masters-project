@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+ <title>Value Categories Lab</title>
+ <style>
+    p.small {
+      line-height: 0.8;
+    }
+
+</style>
+</head>
+<body>
+  <div align="right">
+    Author: Trevor Hackett
+  </div>
+  <div align="center">
+    <h2>Value Categories</h2>
+  </div>
+
+<p>
+The c++ standard specifies that "An expression is a
+sequence of operators and operands that specifies a
+computation. An expression can result in a value and
+can cause side effects." Expressions can be as simple
+as <code>i++;</code> and as complicated as <code>[]
+(double d, S s)->Prime { d += 7+5+3+2; return
+s.compute(d,d*2,d*3,d*5,d*7); }</code>.
+
+Every c++ expression is defined by two independent things:
+<em>type</em> and <em>value category</em>. Since you have a lot
+of experience working with type, this lab focuses on value
+category, a concept with which you've likely interacted very
+little.
+</p>
+
+<p>
+The most straight-forward way to tackle value categories is to
+first look at the assignment operator, so a program like the following
+very simple one will be instructive:
+</p>
+
+  <pre>
+  int i;
+  i = 10; // i.operator=(10);
+  </pre>
+
+<p>
+When the assignment operator is invoked, there is a clear left
+side (<code>i</code>) and right side (<code>10</code>). Each side is
+a distinct expression, and therefore has its own type (which could be
+the same) and its own value category. Given this, we'll break expressions
+down into <em>glvalues</em> and <em>rvalues</em>. You may be wondering
+why the first branch here wouldn't be into r(ight)values and l(eft)values.
+Well for one we're going to defer the name <em>lvalue</em> for a later branch,
+you'll see. For two, the name <em>lvalue</em> actually refers to C++'s
+predecessor: C, which defined expressions to be <em>lvalues</em> and
+everything else. In this paradigm, the right hand side would define some
+computation and the left hand side would define some location to store
+the result in.
+</p>
+
+<p>
+When c++ came around, it turned functions into <em>lvalues</em> (gave them an
+addressable location) and brought references into the picture. Function
+<em>lvalues</em> was an important shift because it allowed us to use and
+pass around pointers to them. References are an important concept
+int c++ (hopefully you already have some idea why) but they bind to lvalues,
+rather than rvalues. Expanding on the code above paints a picture:
+
+  <pre>
+  int i;
+  i = 10;        // operator=(int),  i is lvalue,    10 is rvalue
+  int& iRef = i; // operator=(int&), iRef is lvalue, i is lvalue
+  </pre>
+
+Up until c++11, this was fine, it was everything we needed: <em>lvalues</em>
+and <em>rvalues</em> were sufficient to define the value category of every
+possible expression. But when <em>move semantics</em> and <em>rvalue
+references</em> came into the picture, there was a whole category of
+expressions that no longer fit cleanly into <em>lvalue</em> or
+<em>rvalue</em>, but kind of was both. Let's look at a motivating example. 
+</p>
+
+<pre>
+  struct S {
+    // lots of dynamically allocated data
+    S() { ... }
+    S(const S& other) { ... }
+    S(S&& other) { ... }
+    ~S() { ... }
+
+  };
+
+  S& func1() {
+    static S s; // static because (note 1)
+    // do some computation, build up s,
+    // s is really big
+    return s;
+  }
+
+  S&& func2() {
+    S s;
+    // do some computation, build up s,
+    // s is really big
+    return std::move(s);
+  }
+
+
+  int main() {
+    S s_copy = func1();
+    S s_move = func2();
+  }
+</pre>
+
+<p>
+When the call to <code>func1</code> is made and the result stored into
+<code>s_copy</code>, the following happens: the body of <code>func1</code>
+executes returning an object of type <code>S</code>, the copy constructor
+for <code>S</code> is called, the <code>const S&</code> argument passed in
+being the object created by <code>func1</code>, the body of the copy
+constructor executes making a copy of what <code>func1</code> had created,
+and <code>s</code> is destroyed. Effectively, the object that we want is being
+created two times: once by <code>func1</code> and then again by the copy
+constructor.
+</p>
+
+<p>
+C++11 fixed this with <strong>move semantics</strong>, which avoids making
+copies of objects with dynamically allocated memory in the case that we
+only want one variable (<code>lvalue</code>) refering to that object. When
+the call to <code>func2</code> is made, the following happens: the body
+of <code>func2</code> executes returning an <strong>rvalue reference</strong>
+effectively calling a different <code>S</code> constructor - the move
+constructor, <code>s</code> is destroyed. The move constructor, rather than
+making deep copies of all
+of that dynamically allocated memory, simply has <code>s_move</code>'s
+pointers point to that memory (and has <code>s</code>'s pointers point to
+<code>nullptr</code> to prevent it from deallocating that data when it is
+destroyed).
+</p>
+
+<p>
+But what does all of this have to do with value categories? Well move semantics
+introduced a new type: an <em>rvalue reference</em>
+(<code><strong>&&</strong></code>). These aren't exactly just <em>rvalues</em>
+because they have an addressible location in memory but they aren't
+exactly just <em>lvalues</em> because they disappear after use. As soon as
+<code>s</code> from <code>func2</code> has been moved into s_move, <code>s
+</code> refers no longer exists. Because of this, c++11 introduced a third
+value category, <em>xvalue</em>. As before, each category is mutually exclusive
+ - no expression can belong to more than one at a time. We've branched our
+previous {<em>lvalue</em>,<em>rvalue</em>} categories into the following:
+{<em>lvalue</em>,<em>xvalue</em>,<em>prvalue</em>}.
+</p>
+
+<pre>
+        expression
+        /        \
+     glvalue   rvalue
+      /   \    /   \
+ lvalue   xvalue   prvalue
+</pre>
+
+<p>
+TODO: put some examples in and then put the questions themselves in!
+</p>
+
+
+
+<p><br><br>
+<strong><em>note 1</em></strong>: this example is somewhat contrived and probably not the best
+motivating example for move semantics but it gets to the point. When
+the object of type <code>S</code> in <code>func1</code> is declared
+<code>static</code>, it persists outside of the function call. This
+prohibits c++ from performing <strong>copy elision</strong> in, which
+it only calls the default constructor one time, the result being referred
+automatically by the variable s_copy as opposed to calling the default
+constructor, making an object for <code>s</code>, returning it into
+the copy constructor that makes a copy of <code>s</code> for <code>
+s_copy</code>.
+</p>
+</body>
+
+</html>
