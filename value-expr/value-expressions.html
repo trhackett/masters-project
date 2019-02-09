@@ -1,29 +1,30 @@
-<?xml version="1.0" encoding="ISO-8859-1" ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
+<?xml version=1.0 encoding=ISO-8859-1 ?>
+<!DOCTYPE html PUBLIC -//W3C//DTD XHTML 1.0 Transitional//EN
+        http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd>
+<html xmlns=http://www.w3.org/1999/xhtml>
 <head>
- <title>Value Categories Lab</title>
- <style>
-    p.small {
-      line-height: 0.8;
-    }
+<title>Value Categories Lab</title>
+<style>
+  p.small {
+    line-height: 0.8;
+  }
 
 </style>
 </head>
 <body>
-  <div align="right">
-    Author: Trevor Hackett
-  </div>
-  <div align="center">
-    <h2>Value Categories</h2>
-  </div>
+
+<div align=right>
+Author: Trevor Hackett
+</div>
+<div align=center>
+<h2>Value Categories</h2>
+</div>
 
 <p>
-The c++ standard specifies that "An expression is a
+The c++ standard specifies that An expression is a
 sequence of operators and operands that specifies a
 computation. An expression can result in a value and
-can cause side effects." Expressions can be as simple
+can cause side effects. Expressions can be as simple
 as <code>i++;</code> and as complicated as <code>[]
 (double d, S s)->Prime { d += 7+5+3+2; return
 s.compute(d,d*2,d*3,d*5,d*7); }</code>.
@@ -163,9 +164,156 @@ previous {<em>lvalue</em>,<em>rvalue</em>} categories into the following:
  lvalue   xvalue   prvalue
 </pre>
 
-<p>
-TODO: put some examples in and then put the questions themselves in!
+<p class=p.small>
+The strict definitions of these are as follows (from the c++ standard):<br>
+- A <strong>glvalue</strong> is an expression whose evaluation determines the identity
+of an object, bit-field, or function.<br>
+- An <strong>rvalue</strong> is a prvalue or an xvalue.<br>
+- A <strong>prvalue</strong> is an expression whose evaluation initializes an object or
+a bit-field, or computes the value of the operand of an operator, as
+specified by the context in which it appears.<br>
+- An <strong>xvalue</strong> is a glvalue that denotes an object or bit-field whose
+resources can be reused (usually because it is near the end of its
+lifetime). [ Example: Certain kinds of expressions involving rvalue
+references yield xvalues, such as a call to a function whose
+return type is an rvalue reference or a cast to an rvalue reference
+type. -end example ]<br>
+- An <strong>lvalue</strong> is a glvalue that is not an xvalue.<br>
 </p>
+
+<p>
+Analyze the following code and answer the questions below:
+</p>
+
+<pre>
+{
+  int i = 0;                                       // 1
+  int j = i+2;                                     // 2
+
+  vector<int> intVec(10, i);                       // 3
+  for (; i < intVec.size();                        // 4
+       i++)                                        // 5
+  {
+      ...
+  }
+
+  int& iref = i;                                   // 6
+  int&& jref = 0;                                  // 7
+  vector<int> vec = vector<int>()                  // 8
+
+  int func(double d) {                             // 9
+    return d*2;                                  // 10
+  }
+
+  func(10)                                         // 11
+
+  enum Color { red, yellow, blue };                // 12
+
+  class Manatee { ... };
+  void func3(Manatee m) { ... }
+  func3(Manatee());                                // 13
+
+  int arr[5];
+  *(arr+3) = 3;                                    // 14
+  arr[4] = 3;                                      // 15
+
+  int& func2(int i) {
+    return i;
+  }
+
+  int g = 10;
+  func2(g);                                        // 16
+  func2(g) + 2;                                    // 17
+
+  int&& func4(int i) {
+    return move(i);                              // 18
+  }
+
+  func4(g);                                        // 19
+  int&& rref = static_cast<int&&>(g)               // 20
+
+  struct intStruct {
+    int val;
+    intStruct&& operator+(intStruct iS) {
+      return intStruct(val + iS.val);
+    }
+    intStruct(int i) : val(i) { }
+  };
+
+  struct intStruct {
+    int val;
+
+    intStruct&& operator+(intStruct iS) {
+      return move(intStruct(val + iS.val));    // 21
+    }
+    
+    intStruct(int i) : val(i) { }
+  };
+
+  intStruct iS1(4);
+  intStruct iS2(5);
+  intStruct&& iS3 = iS1 + iS2;                     // 22
+
+  struct S {
+    int m;
+  };
+
+  S&& func5();
+
+  func5().m;                                       // 23
+  int n = S().m;                                   // 24
+
+  int arr[10];
+  int* p = arr;                                    // 25
+
+  int (*pFunc) (double) = func                     // 26
+}
+</pre>
+
+<p>
+For the following questions, indicate if the expression from the code
+above is a <strong>(A)</strong> lvalue, <strong>(B)</strong> xvalue,
+<strong>(C)</strong> prvalue.
+</p>
+
+<pre>
+ line    expression
+--------------------
+  1         i
+  1         0
+  2         i+1
+  2         j
+  3         intVec
+  4         intVec.size()
+  5         i++
+  6         iref
+  6         i
+  7         jref
+  8         vector<int>()
+  9         func
+  9         d
+  10        d*2
+  11        func(10)
+  12        red
+  13        Manatee()
+  14        (arr+3)
+  14        *(arr+3)
+  15        arr[4]
+  16        func2(g)
+  17        func3(g) + 2
+  18        move(i)
+  19        func4(g)
+  20        static_cast<int&&>(g)
+  21        intStruct(val + iS.val)
+  22        iS1 + iS2
+  22        iS3
+  23        func5()
+  23        func5().m
+  24        S()
+  24        S().m
+  25        arr
+  26        func
+</pre>
 
 
 
