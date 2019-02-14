@@ -17,7 +17,7 @@ of their compile-time nature.
 template latent problems:
 1. cannot specialize data members, just functions
 2. if template class has more than one parameter, you can't specialize individual
-member functions (page 7)
+    member functions (page 7)
 3. can't provide multiple default value/implementation of a member function
     -- I can't think of a time you'd want to provide more than one where you
     can't leverage some other quality to achieve the same goal. For example

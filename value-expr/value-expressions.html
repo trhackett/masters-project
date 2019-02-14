@@ -267,6 +267,10 @@ Analyze the following code and answer the questions below:
   int* p = arr;                                    // 25
 
   int (*pFunc) (double) = func                     // 26
+
+  void func6(int&& i) { ... }                      // 27
+  func6(n);                                        // 28
+  func6(10);                                       // 29
 }
 </pre>
 
@@ -313,6 +317,8 @@ above is a <strong>(A)</strong> lvalue, <strong>(B)</strong> xvalue,
   24        S().m
   25        arr
   26        func
+  27        i    // with function call on line 28
+  27        i    // with function call on line 29
 </pre>
 
 

@@ -83,6 +83,10 @@ Consider the following code segment:
 
 	int (*pFunc) (double) = func                     // 26
 
+	void func6(int&& i) { ... }                      // 27
+	func6(n);                                        // 28
+	func6(10);                                       // 29
+
 }
 
 For the following questions, indicate if the expression from the code
@@ -123,3 +127,5 @@ above is a (A) lvalue, (B) xvalue, (C) prvalue
 "S().m"                         line 24    (C)
 "arr"                           line 25    (C)
 "func"                          line 26    (C)
+"i"  line 27, with the function call on line 28 (A)
+"i"  line 27, with the function call on line 29 (B)
