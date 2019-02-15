@@ -4,20 +4,61 @@
 #include <string>
 using namespace std;
 
+bool isWhiteSpace(char c) {
+	return c == ' ' || c == '\n' || c == '\t';
+}
+
 
 // write a function that gets the next word to write to
 // the outfile. A word is anything that is separated
-// by white space on either side.
-string getNextWord(ifstream& in) {
+// by white space on either side. nl is true if there
+// is a newline character, else false.
+string getNextWord(ifstream& in, bool& nl) {
 	string ret = {};
 
 	char c = 'a';
-	while (!in.eof() && c != ' ') {
-		in.get(c);
+	while (in.get(c) && !isWhiteSpace(c)) {
 		ret += c;
 	}
 
 	return ret;
+}
+
+void writeAllWhiteSpace(ifstream& in, ofstream& out) {
+	char c;
+	while (in.get(c) && isWhiteSpace(c)) {
+		out << c;
+	}
+	in.unget();
+}
+
+void writeParagraph(ifstream& in, ofstream& out) {
+	char c;
+	bool oneNewLine = false;
+	string word;
+	while (in.get(c)) {
+
+		if (c == '\n') {
+			// if you've found one newline, remember that
+			if (!oneNewLine) {
+				oneNewLine = true;
+			}
+
+			// if you've found two newlines, you're done
+			else {
+				return;
+			}
+		}
+
+		if (!isWhiteSpace(c)) {
+			word += c;
+		}
+
+		else {
+			out << word << ' ';
+			word.clear();
+		}
+	}
 }
 
 int main(int argc, char* argv[]) {
@@ -43,52 +84,12 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 
-	// I want to copy in all characters from infile to
-	// outfile until I run out in infile but I want to
-	// only write 60 chars/line
-	bool lastWasSpace = false;
+	char c;
+	bool oneNL = false;
+
 	while (!infile.eof()) {
-
-		// write a line
-		int charsWrote = 0;
-		string writeToNextLine = {};
-		while (charsWrote < 60 && !infile.eof()) {
-
-			// only first iteration, clear it
-			if (!writeToNextLine.empty()) {
-				outfile << writeToNextLine;
-				writeToNextLine.erase(writeToNextLine.begin(),
-									  writeToNextLine.end());
-			}
-
-			// get the next word
-			string s = getNextWord(infile);
-
-			if (s == "\n") {
-				outfile << '\n';
-				break;
-			}
-
-			// if it doesn't fit, save it for the next line
-			if (charsWrote + s.size() >= 60) {
-				writeToNextLine = s;
-				break;
-			}
-
-			// don't write a bunch of newlines for spaces
-			if (s == " ") {
-				lastWasSpace = true;
-			} else {
-				lastWasSpace = false;
-			}
-
-			if (lastWasSpace && s == " ") {
-				continue;
-			}
-
-			outfile << s;
-			charsWrote += s.size();
-		}
+		writeParagraph(infile, outfile);
+		outfile << "\n\n";
 	}
 
 	infile.close();
