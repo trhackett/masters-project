@@ -1,5 +1,6 @@
 
 #include "Network.h"
+#include "NetworkedComputer.h"
 
 using SimpleComputer = NetworkedComputer<SimpleProtocol,
 						HuffmanEncoding,SimpleStorage>;
@@ -9,9 +10,9 @@ int main() {
 
 	// make some computerrs that are connected on
 	// a network (more like a bus tbh)
-	SimpleComputer c1(&net);
-	SimpleComputer c2(&net);
-	SimpleComputer c3(&net);
+	SimpleComputer c1(net);
+	SimpleComputer c2(net);
+	SimpleComputer c3(net);
 
 	c1.connectWith(c2);
 	c2.connectWith(c3);
