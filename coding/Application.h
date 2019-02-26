@@ -1,30 +1,30 @@
-#ifndef NETWORKEDCOMPUTER_H
-#define NETWORKEDCOMPUTER_H
+#ifndef APPLICATION_H
+#define APPLICATION_H
 
 #include "Protocol.h"
 #include "Storage.h"
-#include "Network.h"
+#include "Memory.h"
 
 template<template<class> class ProtocolPolicy,
 		 class EncodingPolicy,
 		 class StoragePolicy>
-class NetworkedComputer: public ProtocolPolicy<EncodingPolicy>,
+class Application: public ProtocolPolicy<EncodingPolicy>,
 						 public StoragePolicy
 {
 public:
 	// the constructor should connect this computer
 	// with the network and generate some data to be sent
 	// to some recipient
-	NetworkedComputer(Network& n);
+	Application(Memory& n);
 
-	~NetworkedComputer() {}
+	~Application() {}
 
-	bool connectWith(NetworkedComputer& other) {
+	bool connectWith(Application& other) {
 		return false;
 	}
 
 private:
-	Network& m_network;
+	Memory& m_memory;
 };
 
 #endif
@@ -34,8 +34,8 @@ private:
 //////////////////////////////////////////////////////////////////////////////////////////////
 
 template<template<class> class ProtocolPolicy, class EncodingPolicy, class StoragePolicy>
-NetworkedComputer<ProtocolPolicy, EncodingPolicy, StoragePolicy>
-::NetworkedComputer(Network& net)
- : m_network(net)
+Application<ProtocolPolicy, EncodingPolicy, StoragePolicy>
+::Application(Memory& mem)
+ : m_memory(mem)
 {
 }
