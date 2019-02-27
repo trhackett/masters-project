@@ -4,18 +4,10 @@
 #include <vector>
 #include <list>
 #include <string>
+#include <queue>
 #include <iostream>
 #include "timer.h"
 using namespace std;
-
-/*
-	The only thing the Network knows how to do is store data for some amount
-	of time. When anyone tries to access some data, it gives it to them. It 
-	me be best to implement as a map of addresses (destination) to data. That
-	way, whenever someone writes, it adds something to the map and whenver
-	someone else reads, it gives them back the data they were looking for.
-*/
-
 
 class DataStore {
 public:
@@ -31,7 +23,7 @@ public:
     	// add the written data into your data
   	list<char>::iterator it = m_data.insert(m_data.end(), data.begin(), data.end());
       // push back the clean up entry into the entries.
-    m_entries.push_back(entry(it, data.size(), m_time.elapsed()));
+    m_entries.push(entry(it, data.size(), m_time.elapsed()));
   }
 
     // read all data currently in the network,
@@ -78,7 +70,7 @@ private:
 
     // need to remember where each data starts and end and
     // when it was inserted for cleaning up
-  list<entry> m_entries;
+  queue<entry> m_entries;
 
     // function that goes through the data, removing any data
     // that is too old (timeEntered > m_persistence)
@@ -95,26 +87,27 @@ private:
 // characters removed plus number of characters after last one
 // removed. So that's good.
 void DataStore::cleanData() {
-  list<entry>::iterator it = m_entries.begin();
-  while (it != m_entries.end()) {
-      // if it was entered more than m_persistence seconds (x1000 = ms) ago
-      // remove it
-    if (it->timeEntered + m_persistence * 1000 < m_time.elapsed()) {
-        // remove all characters starting at the entries start
-        // and ending after size characters have been removed
-      list<char>::iterator del = it->start;
-      for (int i = 0; i < it->size; i++) {
-        del = m_data.erase(del);
-      }
 
-        // remove this entry and go to the next one
-      it = m_entries.erase(it);
+  // if it was entered more than m_persistence seconds (x1000 = ms) ago
+  // remove it
+  while (!m_entries.empty()) {
+    entry& f = m_entries.front();
+
+      // if the entry is still valid, then all the ones after it
+      // are too, so stop
+    if (f.timeEntered + m_persistence * 1000 > m_time.elapsed()) {
+      return;
     }
 
-      // if removed nothing, check the next one
-    else {
-      ++it;
+      // remove all characters starting at the entries start
+      // and ending after size characters have been removed
+    list<char>::iterator del = f.start;
+    for (int i = 0; i < f.size; i++) {
+      del = m_data.erase(del);
     }
+
+      // remove this entry and go to the next one
+    m_entries.pop();
   }
 }
 
@@ -129,14 +122,14 @@ void DataStore::printData() const {
 
 void DataStore::printEntries() const {
   cout << " -- printEntries --" << endl;
-  int totalsize = 0;
-  list<entry>::const_iterator it = m_entries.begin();
-  for (; it != m_entries.end(); ++it) {
-    cout << *(it->start) << " " << it->timeEntered << " ";
-    totalsize += it->size;
+  queue<entry> temp(m_entries);
+  int numEntries = temp.size();
+  while (numEntries-- > 0) {
+    entry f = temp.front();
+    cout << *(f.start) << " " << f.timeEntered << " ";
   }
   cout << endl;
-  cout << "totalsize: " << totalsize << " " << "data size: " << m_data.size() << endl;
+  cout << "totalsize: " << m_entries.size() << " data size: " << m_data.size() << endl; 
 }
 
 #endif

@@ -62,24 +62,24 @@
   of allowing us to use code and functionality that we didn't write,
   but they serve another very useful service. They separate the 
   functionality of code from its usage. Anyone could re-write the POSIX
-  functions and tell me how to use them - as long as they take the same
-  output, give the same output, and have the same side effects, these
+  functions- as long as they take the same
+  input, give the same output, and have the same side effects, then the
   libraries would be viewed as interchangeable. With a well defined
   interface, operating system developers can make changes to the underlying
-  OS as long as they obey what the POSIX API promises and at the same time
+  OS as long as they obey what the POSIX API promises. At the same time,
   application developers can make changes to their applications using
   the POSIX methods without worrying that the system calls will change
-  or worse that they'll change the behavior of the system calls.
+  or worse that their code will change the behavior of system calls.
 </p>
 
 
 <h3>Your first task</h3>
 <p>
-  Your first goal for this lab is to design a very simple API that
+  The first goal for this lab is to design a very simple API that
   resembles a DataStore unit. We'll call the class DataStore, because it's
   very general. All DataStore can do is be read from and written to
   by any application/computer/whatever. DataStore doesn't even understand
-  different types - it can only read/write <code>char</code>s (and,
+  different types - it can only read/write <code>char</code>s (from/into,
   by extension, <code>string</code>s). You are to write a class that
   provides the following public functionality:
 </p>
@@ -99,30 +99,46 @@ public:
 
     // s is a reference to some character array (string). DataStore
     // fills that character array with all data (chars) that
-    // it currently has. 
+    // it currently has. If there are n chars in the DataStore,
+    // then when this function ends, s[0] through s[n-1] contains
+    // those characters and s.size() == n
   void read(string& s);
 };
 </pre>
 
 <p>
-  The persistance of data is worth clarifying. When data is written
-  to DataStore, the DataStore can't keep track of it forever. You constructor
-  should take in one integer parameter specifying exactly how many
-  seconds data written to the DataStore lasts.
+  The <strong>persistance</strong> of data is worth clarifying. When data is written
+  to DataStore, the DataStore doesn't keep track of it forever.
+  There are many reasons to
+  provide evict data from a DataStore. Maybe the DataStore models a
+  cache and so when it fills up, the cache has to make space. Maybe it
+  models a bus that only holds data instantaneously and only listeners
+  that read constantly receive that data. To simplify out model, we'll
+  say data persists some number of seconds before being cleaned up. Your
+  constructor should take in one integer parameter specifying exactly
+  how many seconds data written to the DataStore lasts. If the DataStore
+  notices that some data is out-of-date, it removes it, meaning subsequent
+  reads will not include that expired data.
 </p>
 
 <p>
-  You, of course, can add any private functionality that you prefer
+  You, of course, can add any private functionality that you'd like
   as long as your DataStore class obeys this interface. A user of this class
   can make a couple of assumptions that you must guarentee:<br>
 
-  1) DataStore is limitless, as in
-  someone who knows about the DataStore can write infinite characters to
-  it without error (if they fill your entire virtual address space,
-  we'll let the underlying OS take care of things)<br>
+  <ol>
+    1) <strong>DataStore is limitless</strong>, as in
+    someone who knows about the DataStore can write infinite characters to
+    it without error (if they fill your entire virtual address space,
+    we'll let the underlying OS take care of things)<br>
 
-  2) DataStore has no protection, as in when someone wants some data,
-  they get all of the data in DataStore, not just the data at some
-  address - they not only can assume this, but they must deal with
-  this slight inconvenience (more on that later)<br>
+    2) <strong>DataStore has no privacy</strong>, as in when someone wants some data,
+    they get all of the data in DataStore, not just the data at some
+    address - they not only can assume this, but they must deal with
+    this slight inconvenience (more on that later)<br>
+
+    3) <strong>DataStore's data cannot be altered</strong> - only added to. All I can do
+    is write (adds data) or read (find out all data in DataStore), I
+    cannot modify the data in the DataStore<br>
+  </ol>
 </p>
