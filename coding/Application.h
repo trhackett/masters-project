@@ -3,7 +3,7 @@
 
 #include "Protocol.h"
 #include "Storage.h"
-#include "Memory.h"
+#include "DataStore.h"
 
 template<template<class> class ProtocolPolicy,
 		 class EncodingPolicy,
@@ -15,7 +15,7 @@ public:
 	// the constructor should connect this computer
 	// with the network and generate some data to be sent
 	// to some recipient
-	Application(Memory& n);
+	Application(DataStore& n);
 
 	~Application() {}
 
@@ -24,7 +24,7 @@ public:
 	}
 
 private:
-	Memory& m_memory;
+	DataStore& m_DataStore;
 };
 
 #endif
@@ -35,7 +35,7 @@ private:
 
 template<template<class> class ProtocolPolicy, class EncodingPolicy, class StoragePolicy>
 Application<ProtocolPolicy, EncodingPolicy, StoragePolicy>
-::Application(Memory& mem)
- : m_memory(mem)
+::Application(DataStore& mem)
+ : m_DataStore(mem)
 {
 }

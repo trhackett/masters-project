@@ -3,7 +3,7 @@
         "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
- <title>Memory Lab</title>
+ <title>Policy Lab</title>
  <style>
     p.small {
       line-height: 0.8;
@@ -16,10 +16,17 @@
     Author: Trevor Hackett
   </div>
   <div align="center">
-    <h2>Memory Lab</h2>
+    <h2>DataStore Lab</h2>
   </div>
 
+<h3>Topics Covered</h3>
+<p>
+  - Policy-based Class Design<br>
+  - Advanced Templates / Template Metaprograaming<br>
+  - Multiple Inheritance<br>
+</p>
 
+<h3>Overview</h3>
 <p>
   All of the programs you've written up to this point have
   been designed to solve some very specific problem. The
@@ -28,67 +35,94 @@
   up with the best way to implement that functionality without
   error (or at least handling errors gracefully). This works
   well for learning about concepts and how to write programs
-  abiding by some computer science concept. What it doesn't do
-  is provide the kind of flexibility we may want. In developing
+  revolving around some computer science concept. What it doesn't do
+  is provide the kind of flexibility that allows other programmers
+  to take code you've written and extend it for their own purposes. In developing
   an application that is going to be used by any number of
   developers for whatever purpose they bring to the table, we
-  want to provide a program that will bend and stretch to their
+  want to provide a framework that will bend and stretch to their
   needs. Oftentimes, they will write their own classes that
-  they want to fit into the framework we've provided. Take, as
-  a huge scale example, the internet. Each machine connected to
-  the internet can run a different operating system, run
-  different applications that need to communicate to one another.
-  The internet needs only provide some standardized mechanism
-  for that communication.
+  they want to fit into the framework we've provided.
 </p>
 
 <p>
-  In this lab, you're going to write a program that is designed
-  to be general. Your program will provide a back-bone that a
-  developer take and extend to their purposes. The context for
-  this lab is a very reduced form of the internet. The internet
-  is just an enormous network of connected machines. It is a
-  transporter of bits - if one machine wants to get data to another,
-  it sets up a connection with that machine (by sending and
-  receiving some bits), sends the data (in the form of bits),
-  and closes the connection (by sending/receiving some bits).
-  I repeat myself intentionally to emphasize that the interface
-  is very simple and the details brought in by the user of
-  it are what make an interesting application.
+  A broad
+  category of programs that fit this description is an API.
+  An API (application programming interface) is a specification
+  of some set of functions, data structures, classes, etc that
+  provide some functionality. Hopefully from an operating systems
+  course, you're familiar with the POSIX API which provides an
+  interface in the form of <em>system calls</em> for applications
+  that we write to utilize functionality
+  the operating system manages.
 </p>
 
 <p>
-  There are two main classes - Network and NetworkedComputer.
-  The Network is the medium through which data is exchanged
-  between NetworkedComputers. It provides a very simple interface.
-  Anyone can write data to the Network and read data off of
-  it. When data is written to the network, it persists for some
-  globally defined time (we'll use 10s or 10,000ms) after
-  which anyone who tries to read that data will fail to. When
-  someone reads from the Network, they receive all data that
-  is currently written to it. It is open and transparent -
-  much like the internet today. The definition of the Network
-  class is as follows:
+  APIs such as POSIX strive to accomplish the very important task
+  of allowing us to use code and functionality that we didn't write,
+  but they serve another very useful service. They separate the 
+  functionality of code from its usage. Anyone could re-write the POSIX
+  functions and tell me how to use them - as long as they take the same
+  output, give the same output, and have the same side effects, these
+  libraries would be viewed as interchangeable. With a well defined
+  interface, operating system developers can make changes to the underlying
+  OS as long as they obey what the POSIX API promises and at the same time
+  application developers can make changes to their applications using
+  the POSIX methods without worrying that the system calls will change
+  or worse that they'll change the behavior of the system calls.
+</p>
+
+
+<h3>Your first task</h3>
+<p>
+  Your first goal for this lab is to design a very simple API that
+  resembles a DataStore unit. We'll call the class DataStore, because it's
+  very general. All DataStore can do is be read from and written to
+  by any application/computer/whatever. DataStore doesn't even understand
+  different types - it can only read/write <code>char</code>s (and,
+  by extension, <code>string</code>s). You are to write a class that
+  provides the following public functionality:
 </p>
 
 <pre>
-class Network {
+class DataStore {
 public:
-    // write numChars characters to the network,
-    // when this function completes, the network will
-    // have a copy of each char between data[0] and
-    // data[numChars-1] for persistence() milliseconds.
-  void write(char* data, int numChars); 
+    // p is the persistance of data - when data is written
+    // to DataStore, it stays there for p seconds, after which
+    // read will not include that expired data
+  DataStore(int p);
 
-    // read all data currently in the network,
-    // when this function returns, the array pointed
-    // to by data will have numChars characters
-    // from data[0] to data[numChars-1]
-  void read(char* data, int& numChars) const;
+    // s is a character array (string). DataStore records each
+    // character in s and retains it for as many seconds as is
+    // passed into the constructor
+  void write(string s);
 
-    // returns an integer representing the number of
-    // milliseconds the network holds onto data written
-    // to it for
-  int persistence() const;
+    // s is a reference to some character array (string). DataStore
+    // fills that character array with all data (chars) that
+    // it currently has. 
+  void read(string& s);
 };
 </pre>
+
+<p>
+  The persistance of data is worth clarifying. When data is written
+  to DataStore, the DataStore can't keep track of it forever. You constructor
+  should take in one integer parameter specifying exactly how many
+  seconds data written to the DataStore lasts.
+</p>
+
+<p>
+  You, of course, can add any private functionality that you prefer
+  as long as your DataStore class obeys this interface. A user of this class
+  can make a couple of assumptions that you must guarentee:<br>
+
+  1) DataStore is limitless, as in
+  someone who knows about the DataStore can write infinite characters to
+  it without error (if they fill your entire virtual address space,
+  we'll let the underlying OS take care of things)<br>
+
+  2) DataStore has no protection, as in when someone wants some data,
+  they get all of the data in DataStore, not just the data at some
+  address - they not only can assume this, but they must deal with
+  this slight inconvenience (more on that later)<br>
+</p>

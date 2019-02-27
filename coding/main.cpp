@@ -1,36 +1,72 @@
 
 #include <unistd.h> // sleep()
+#include <cassert>  // assert()
 
-#include "Memory.h"
+#include "DataStore.h"
 #include "Application.h"
+
+void testDataStore() {
+	DataStore m(5); // writes last 5 seconds
+
+	string s;
+	m.read(s);
+	assert(s.size() == 0 && s == "");
+
+	// write a bunch of strings and make sure
+	// they're written
+	string entire {};
+	for (char i = '0'; i < '5'; i++) {
+		string s1 = "iter";
+		s1 += i;
+		m.write(s1);
+		entire += s1;
+		m.read(s1);
+		assert(s1 == entire);
+		sleep(1);
+	}
+	
+	// 5 seconds have passed, so iter0 is gone
+	m.read(s);
+	assert(s == entire.substr(5));
+	sleep(1);
+
+	// 6 seconds, iter1
+	m.read(s);
+	assert(s == entire.substr(10));
+	sleep(1);
+
+	// 7 seconds, iter2
+	m.read(s);
+	assert(s == entire.substr(15));
+	sleep(1);
+
+	// write another
+	s = "final";
+	m.write(s);
+	entire += s;
+
+	// 8 seconds, iter3
+	m.read(s);
+	assert(s == entire.substr(20));
+	sleep(1);
+
+	// 9 seconds, iter4
+	m.read(s);
+	assert(s == entire.substr(25));
+	sleep(1);
+
+	// final thing lasts 3 more seconds
+	sleep(3);
+	m.read(s);
+	assert(s == "");
+}
 
 using SimpleApp = Application<SimpleProtocol,
 						HuffmanEncoding,SimpleStorage>;
 
-
-void testMemory() {
-	Memory m;
-
-	char d1[4] = {'a','b','c','d'};
-	m.write(d1, 4);
-
-	char d2[6] = {'t','r','e','v','o','r'};
-	m.write(d2, 6);
-
-	m.printData();
-	m.printEntries();
-
-	sleep(12);
-
-	char* d = new char[20];
-	int s;
-	m.read(d, s);
-	delete [] d;
-}
-
 int main() {
 	/*
-	Memory mem;
+	DataStore mem;
 
 	// make some computerrs that are connected on
 	// a network (more like a bus tbh)
@@ -47,5 +83,7 @@ int main() {
 	c3.createNewData();
 	*/
 
-	testMemory();
+	testDataStore();
+
+	cout << "Passed all tests!" << endl;
 }
