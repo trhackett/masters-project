@@ -87,6 +87,17 @@ Consider the following code segment:
 	func6(n);                                        // 28
 	func6(10);                                       // 29
 
+	void func7(double d) {
+		cout << d << endl;
+	}
+
+	double func3() {
+		double x(5.8);
+		return x;
+	}
+
+	func7(func3());                                   // 30
+
 }
 
 For the following questions, indicate if the expression from the code
@@ -129,3 +140,4 @@ above is a (A) lvalue, (B) xvalue, (C) prvalue
 "func"                          line 26    (C)
 "i"  line 27, with the function call on line 28 (A)
 "i"  line 27, with the function call on line 29 (B)
+"func3()"                       line 30    (C)

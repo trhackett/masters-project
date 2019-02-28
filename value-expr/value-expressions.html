@@ -21,12 +21,12 @@ Author: Trevor Hackett
 </div>
 
 <p>
-The c++ standard specifies that An expression is a
+The c++ standard specifies that <em>"An expression is a
 sequence of operators and operands that specifies a
-computation. An expression can result in a value and
+computation"</em>. An expression can result in a value and
 can cause side effects. Expressions can be as simple
 as <code>i++;</code> and as complicated as <code>[]
-(double d, S s)->Prime { d += 7+5+3+2; return
+(double d, S s) -> Prime { d += 7+5+3+2; return
 s.compute(d,d*2,d*3,d*5,d*7); }</code>.
 
 Every c++ expression is defined by two independent things:
@@ -38,7 +38,7 @@ little.
 
 <p>
 The most straight-forward way to tackle value categories is to
-first look at the assignment operator, so a program like the following
+first look at the assignment operator, and a program like the following
 very simple one will be instructive:
 </p>
 
@@ -50,8 +50,9 @@ very simple one will be instructive:
 <p>
 When the assignment operator is invoked, there is a clear left
 side (<code>i</code>) and right side (<code>10</code>). Each side is
-a distinct expression, and therefore has its own type (which could be
-the same) and its own value category. Given this, we'll break expressions
+a distinct expression, and therefore has its own type (which, if the two
+types are not the same, some conversion needs to happen) and its own value
+category. Given this, we'll break expressions
 down into <em>glvalues</em> and <em>rvalues</em>. You may be wondering
 why the first branch here wouldn't be into r(ight)values and l(eft)values.
 Well for one we're going to defer the name <em>lvalue</em> for a later branch,
@@ -64,10 +65,10 @@ the result in.
 
 <p>
 When c++ came around, it turned functions into <em>lvalues</em> (gave them an
-addressable location) and brought references into the picture. Function
+addressable location) and brought references (&) into the picture. Functions as
 <em>lvalues</em> was an important shift because it allowed us to use and
 pass around pointers to them. References are an important concept
-int c++ (hopefully you already have some idea why) but they bind to lvalues,
+in c++ (hopefully you already have some idea why) but they bind to lvalues,
 rather than rvalues. Expanding on the code above paints a picture:
 
   <pre>
@@ -86,59 +87,65 @@ expressions that no longer fit cleanly into <em>lvalue</em> or
 
 <pre>
   struct S {
-    // lots of dynamically allocated data
-    S() { ... }
-    S(const S& other) { ... }
-    S(S&& other) { ... }
+      // lots of 
+    S() { ... }                   // line A
+    S(const S& other) { ... }     // line B
+    S(S&& other) { ... }          // line C
     ~S() { ... }
 
   };
 
-  S& func1() {
-    static S s; // static because (note 1)
-    // do some computation, build up s,
-    // s is really big
-    return s;
+  S& func1() {                    // line D
+    static S s; // (note 1)       -- invokes line A
+      // do some computation,
+      // build up s,
+      // s is really big
+    return s;                     // invokes line B
   }
 
-  S&& func2() {
-    S s;
-    // do some computation, build up s,
-    // s is really big
-    return std::move(s);
+  S&& func2() {                   // line E
+    S s;                          // invokes line A
+      // do some computation,
+      // build up s,
+      // s is really big
+    return std::move(s);          // invokes line C
   }
 
 
   int main() {
-    S s_copy = func1();
-    S s_move = func2();
+    S s_copy = func1();           // invokes line D
+    S s_move = func2();           // invokes line E
   }
 </pre>
 
 <p>
-When the call to <code>func1</code> is made and the result stored into
+When the call to <code>func1</code> is made in the main function and the result stored into
 <code>s_copy</code>, the following happens: the body of <code>func1</code>
 executes returning an object of type <code>S</code>, the copy constructor
-for <code>S</code> is called, the <code>const S&</code> argument passed in
+for <code>S</code> is called (note 1 for details) - the <code>const S&</code> argument passed in
 being the object created by <code>func1</code>, the body of the copy
-constructor executes making a copy of what <code>func1</code> had created,
-and <code>s</code> is destroyed. Effectively, the object that we want is being
+constructor executes making a copy of what <code>func1</code> had created.
+Effectively, the object that we want is being
 created two times: once by <code>func1</code> and then again by the copy
-constructor.
+constructor. If the goal of <code>func1()</code> is to create an object but have only the
+variable <code>s_copy</code> refer to that object, then this code is very
+wasteful. Assuming the building up of an <code>S</code> object is expensive,
+this operation has to wastefully happen twice.
 </p>
 
 <p>
 C++11 fixed this with <strong>move semantics</strong>, which avoids making
-copies of objects with dynamically allocated memory in the case that we
-only want one variable (<code>lvalue</code>) refering to that object. When
+copies of objects with dynamically allocated memory in the case that a variable
+is about to be destroyed but before it does, we
+only want another variable (<code>lvalue</code>) to refer to to that object. When
 the call to <code>func2</code> is made, the following happens: the body
 of <code>func2</code> executes returning an <strong>rvalue reference</strong>
 effectively calling a different <code>S</code> constructor - the move
-constructor, <code>s</code> is destroyed. The move constructor, rather than
-making deep copies of all
-of that dynamically allocated memory, simply has <code>s_move</code>'s
+constructor, <code>s</code> within <code>func2()</code> is destroyed.
+The move constructor, rather than making deep copies of all
+of that dynamically allocated memory, simply has <code>s_move</code>'s internal
 pointers point to that memory (and has <code>s</code>'s pointers point to
-<code>nullptr</code> to prevent it from deallocating that data when it is
+<code>nullptr</code> to prevent it from freeing the data when it is
 destroyed).
 </p>
 
@@ -186,92 +193,103 @@ Analyze the following code and answer the questions below:
 </p>
 
 <pre>
-{
-  int i = 0;                                       // 1
-  int j = i+2;                                     // 2
+    {
+1      int i = 0;                      
+2      int j = i+2;                    
 
-  vector<int> intVec(10, i);                       // 3
-  for (; i < intVec.size();                        // 4
-       i++)                                        // 5
-  {
-      ...
-  }
+3      vector<int> intVec(10, i);      
+4      for (; i < intVec.size();       
+5           i++)                       
+       {
+           ...
+       }
 
-  int& iref = i;                                   // 6
-  int&& jref = 0;                                  // 7
-  vector<int> vec = vector<int>()                  // 8
+6      int& iref = i;                  
+7      int&& jref = 0;                 
+8      vector<int> vec = vector<int>() 
 
-  int func(double d) {                             // 9
-    return d*2;                                  // 10
-  }
+9      int func(double d) {            
+10       return d*2;                    
+       }
 
-  func(10)                                         // 11
+11     func(10)                         
 
-  enum Color { red, yellow, blue };                // 12
+12     enum Color { red, yellow, blue };
 
-  class Manatee { ... };
-  void func3(Manatee m) { ... }
-  func3(Manatee());                                // 13
+       class Manatee { ... };
+       void func3(Manatee m) { ... }
+13     func3(Manatee());                        
 
-  int arr[5];
-  *(arr+3) = 3;                                    // 14
-  arr[4] = 3;                                      // 15
+       int arr[5];
+14     *(arr+3) = 3;                            
+15     arr[4] = 3;                              
 
-  int& func2(int i) {
-    return i;
-  }
+       int& func2(int i) {
+         return i;
+       }
 
-  int g = 10;
-  func2(g);                                        // 16
-  func2(g) + 2;                                    // 17
+       int g = 10;
+16     func2(g);                                
+17     func2(g) + 2;                            
 
-  int&& func4(int i) {
-    return move(i);                              // 18
-  }
+       int&& func4(int i) {
+18       return move(i);                        
+       }
 
-  func4(g);                                        // 19
-  int&& rref = static_cast<int&&>(g)               // 20
+19     func4(g);                                
+20     int&& rref = static_cast<int&&>(g)       
 
-  struct intStruct {
-    int val;
-    intStruct&& operator+(intStruct iS) {
-      return intStruct(val + iS.val);
+       struct intStruct {
+         int val;
+         intStruct&& operator+(intStruct iS) {
+           return intStruct(val + iS.val);
+         }
+         intStruct(int i) : val(i) { }
+       };
+
+       struct intStruct {
+         int val;
+ 
+         intStruct&& operator+(intStruct iS) {
+21         return move(intStruct(val + iS.val));
+         }
+        
+         intStruct(int i) : val(i) { }
+       };
+
+       intStruct iS1(4);
+       intStruct iS2(5);
+22     intStruct&& iS3 = iS1 + iS2;
+
+       struct S {
+         int m;
+       };
+
+       S&& func5();
+
+23     func5().m;                  
+24     int n = S().m;              
+
+       int arr[10];
+25     int* p = arr;               
+
+26     int (*pFunc) (double) = func
+
+27     void func6(int&& i) { ... } 
+28     func6(n);                   
+29     func6(10);                  
+
+       void func7(double d) {
+         cout << d << endl;
+       }
+
+       double func3() {
+         double x(5.8);
+         return x;
+       }
+
+30     func7(func3());              
     }
-    intStruct(int i) : val(i) { }
-  };
-
-  struct intStruct {
-    int val;
-
-    intStruct&& operator+(intStruct iS) {
-      return move(intStruct(val + iS.val));    // 21
-    }
-    
-    intStruct(int i) : val(i) { }
-  };
-
-  intStruct iS1(4);
-  intStruct iS2(5);
-  intStruct&& iS3 = iS1 + iS2;                     // 22
-
-  struct S {
-    int m;
-  };
-
-  S&& func5();
-
-  func5().m;                                       // 23
-  int n = S().m;                                   // 24
-
-  int arr[10];
-  int* p = arr;                                    // 25
-
-  int (*pFunc) (double) = func                     // 26
-
-  void func6(int&& i) { ... }                      // 27
-  func6(n);                                        // 28
-  func6(10);                                       // 29
-}
 </pre>
 
 <p>
@@ -319,6 +337,7 @@ above is a <strong>(A)</strong> lvalue, <strong>(B)</strong> xvalue,
   26        func
   27        i    // with function call on line 28
   27        i    // with function call on line 29
+  30        func3()
 </pre>
 
 
