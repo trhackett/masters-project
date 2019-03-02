@@ -1,6 +1,6 @@
 
-#include <unistd.h> // sleep()
-#include <cassert>  // assert()
+#include <unistd.h>    // sleep()
+#include <cassert>     // assert()
 #include <type_traits> // is_trivially_destructible
 
 #include "DataStore.h"
@@ -63,8 +63,8 @@ void testDataStore()
 	assert(s == "");
 }
 
-using SimpleApp = Application<SimpleProtocol,
-						HuffmanEncoding,SimpleStorage>;
+using SimpleApp = Application<SimpleProtocol,HuffmanEncoding,
+							char,SimpleStorage>;
 
 void testApplication()
 {
@@ -94,7 +94,7 @@ void testApplication()
 	assert(app2.addPresentConnections() == 2);
 	assert(app3.addPresentConnections() == 2);
 
-	
+
 }
 
 int main() {

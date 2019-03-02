@@ -7,8 +7,10 @@
 
 #include <set>
 
-template<template<class> class ProtocolPolicy, class EncodingPolicy, class StoragePolicy>
-class Application: public ProtocolPolicy<EncodingPolicy>, public StoragePolicy
+template<template<class> class ProtocolPolicy, class EncodingPolicy,
+		 class DataType, template<class> class StoragePolicy>
+class Application: public ProtocolPolicy<EncodingPolicy>,
+				   public StoragePolicy<DataType>
 {
 public:
 	// the constructor should connect this computer
@@ -31,23 +33,36 @@ private:
 /////////////////////////////////////// IMPLMENTATION ////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-template<template<class> class ProtocolPolicy, class EncodingPolicy, class StoragePolicy>
-Application<ProtocolPolicy, EncodingPolicy, StoragePolicy>
+  // intiitalize any private member variables
+template<template<class> class ProtocolPolicy, class EncodingPolicy,
+		 class DataType, template<class> class StoragePolicy>
+Application<ProtocolPolicy, EncodingPolicy, DataType, StoragePolicy>
+
 ::Application(string addr, DataStore& ds)
    : m_address(addr), m_DataStore(ds)    // init member variables
 {
 }
 
-template<template<class> class ProtocolPolicy, class EncodingPolicy, class StoragePolicy>
-string Application<ProtocolPolicy, EncodingPolicy, StoragePolicy>::heartbeat() const
+  // function that write this Application's address on the DataStore
+  // so that other Applications can connect with it
+template<template<class> class ProtocolPolicy, class EncodingPolicy,
+		 class DataType, template<class> class StoragePolicy>
+string Application<ProtocolPolicy, EncodingPolicy, DataType, StoragePolicy>
+
+::heartbeat() const
 {
 	string msg = this->prepareDataForWrite(m_address, this->HEARTBEAT);
 	m_DataStore.write(msg);
 	return msg;
 }
 
-template<template<class> class ProtocolPolicy, class EncodingPolicy, class StoragePolicy>
-int Application<ProtocolPolicy, EncodingPolicy, StoragePolicy>::addPresentConnections()
+  // function that looks at the data currently in the DataStore,
+  // checking for any heartbeats it doesn't already know about
+template<template<class> class ProtocolPolicy, class EncodingPolicy,
+		 class DataType, template<class> class StoragePolicy>
+int Application<ProtocolPolicy, EncodingPolicy, DataType, StoragePolicy>
+
+::addPresentConnections()
 {
 	  // read the raw data
 	string memData;
