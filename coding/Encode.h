@@ -1,12 +1,17 @@
 #ifndef ENCODE_H
 #define ENCODE_H
 
+#include <string>
+using namespace std;
+
 class HuffmanEncoding {
 public:
-	HuffmanEncoding() {}
-	~HuffmanEncoding() {}
-
-	void encodeData() {}
+	string encodeData(string data) const;
 };
 
 #endif
+
+string HuffmanEncoding::encodeData(string data) const
+{
+	return data;
+}

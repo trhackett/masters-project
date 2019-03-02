@@ -1,11 +1,13 @@
 
 #include <unistd.h> // sleep()
 #include <cassert>  // assert()
+#include <type_traits> // is_trivially_destructible
 
 #include "DataStore.h"
 #include "Application.h"
 
-void testDataStore() {
+void testDataStore()
+{
 	DataStore m(5); // writes last 5 seconds
 
 	string s;
@@ -64,26 +66,42 @@ void testDataStore() {
 using SimpleApp = Application<SimpleProtocol,
 						HuffmanEncoding,SimpleStorage>;
 
+void testApplication()
+{
+	DataStore memory(2);      // data written to memory lasts 2 seconds
+
+	SimpleApp app1("LAX", memory);
+	SimpleApp app2("CVG", memory);
+	SimpleApp app3("ABQ", memory);
+
+	  // first, we want everyone connected to memory to
+	  // know about each other - so have each tell the others
+	  // they're there by putting its address on memory
+	const string HTBT_HDR = "HTBT";
+	assert(app1.heartbeat() == HTBT_HDR + "LAX"); // make sure the message is right
+	assert(app2.heartbeat() == HTBT_HDR + "CVG");
+	assert(app3.heartbeat() == HTBT_HDR + "ABQ");
+
+	  // make sure everything was written properly to the memory
+	string htbts = HTBT_HDR + "LAX" + HTBT_HDR + "CVG" + HTBT_HDR + "ABQ";
+	string readData;
+	memory.read(readData);
+	assert(htbts == readData);
+
+	  // when they check to see who else is connected,
+	  // they each discover the other two
+	assert(app1.addPresentConnections() == 2);
+	assert(app2.addPresentConnections() == 2);
+	assert(app3.addPresentConnections() == 2);
+
+	
+}
+
 int main() {
-	/*
-	DataStore mem;
 
-	// make some computerrs that are connected on
-	// a network (more like a bus tbh)
-	SimpleApp c1(mem);
-	SimpleApp c2(mem);
-	SimpleApp c3(mem);
+	// testDataStore(); // this passes
 
-	c1.connectWith(c2);
-	c2.connectWith(c3);
-
-	c1.sendData();
-	c2.checkForData();
-
-	c3.createNewData();
-	*/
-
-	testDataStore();
+	testApplication();
 
 	cout << "Passed all tests!" << endl;
 }

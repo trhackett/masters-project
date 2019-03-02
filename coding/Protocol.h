@@ -11,14 +11,79 @@
 template<class EncodingPolicy>
 class SimpleProtocol : public EncodingPolicy {
 public:
-	SimpleProtocol() {}
-	~SimpleProtocol() {}
 
-	void sendData() {
-		this->encodeData(); // IMPORTANT, I read somewhere why this is necessary
-		                    // and can't remember
-	}
-	void checkForData() {}
+	// we need a series of types of headers that the Application can
+	// access to tell us what type of message is being sent, which we
+	// will use to format the message itself
+	enum MsgType { HEARTBEAT, DATA };
+
+	string prepareDataForWrite(string data, MsgType msgtype) const;
+	int getNextMessage(const string& rawData, MsgType& msgtype, string& data) const;
+
+private:
 };
 
 #endif
+
+template<class EncodingPolicy>
+string SimpleProtocol<EncodingPolicy>::
+prepareDataForWrite(string data, MsgType msgtype) const
+{
+	  // the first four characters of the message specify the
+	  // type of message that it is - that's always true
+	string msg;
+	switch (msgtype) {
+		case HEARTBEAT:
+			msg = "HTBT";
+			break;
+		case DATA:
+			msg = "DATA";
+			break;
+	}
+
+	  // IMPORTANT, I read somewhere why this is necessary
+	  // to call the template base class's function but can't remember
+	msg += this->encodeData(data);
+
+	return msg;
+}
+
+  // this function takes in the raw data and gives the Application
+  // the next message in the rawData - all messages start with a 4
+  // character header - HTBT or DATA. Once it finds a message, it
+  // sets msgtype and data to the corresponding values and returns
+  // the index representing one character passed the rawData that has
+  // been processed. So if characters 0 through 6 are processed, it
+  // returns 7. If no message is found, it returns the size of the
+  // rawData string that is passed in - that is, it tells the Application
+  // that it processed all the data
+
+  // getNextMessage("HTBTLAXHTBTCVG", msgtype, data)
+  //    sets msgtype to HEARTBEAT and data to LAX and
+  //    returns 7
+template<class EncodingPolicy>
+int SimpleProtocol<EncodingPolicy>::
+getNextMessage(const string& rawData, MsgType& msgtype, string& data) const
+{
+	  // we treat it as an error if an empty rawData has been passed in, return -1
+	if (rawData.empty()) {
+		return -1;
+	}
+
+	  // if rawData is ok, process it
+	for (int i = 0; i != rawData.size(); i++) {
+
+		  // get the next four characters
+		string nextFour = rawData.substr(i, 4);
+
+		  // if HEARTBEAT
+		if (nextFour == "HTBT") {
+			msgtype = HEARTBEAT;            // heartbeat msg
+			data = rawData.substr(i+4, 3);  // addr is the next three
+			return i+7;                     // 7 characters past i processed
+		}
+	}
+
+	// no messages found, so we've processed all the data
+	return rawData.size();
+}

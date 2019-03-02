@@ -60,11 +60,11 @@
 <p>
   APIs such as POSIX strive to accomplish the very important task
   of allowing us to use code and functionality that we didn't write,
-  but they serve another very useful service. They separate the 
+  but they serve another very useful promise. They separate the 
   functionality of code from its usage. Anyone could re-write the POSIX
-  functions- as long as they take the same
+  functions - as long as they take the same
   input, give the same output, and have the same side effects, then the
-  libraries would be viewed as interchangeable. With a well defined
+  libraries would be viewed as interchangeable. With this well defined
   interface, operating system developers can make changes to the underlying
   OS as long as they obey what the POSIX API promises. At the same time,
   application developers can make changes to their applications using
@@ -75,19 +75,20 @@
 
 <h3>Your first task</h3>
 <p>
-  The first goal for this lab is to design a very simple API that
-  resembles a DataStore unit. We'll call the class DataStore, because it's
+  The first goal for this lab is to design a very simple API
+  resembling some kind of data storage unit. We'll call the class
+  DataStore, because it's
   very general. All DataStore can do is be read from and written to
   by any application/computer/whatever. DataStore doesn't even understand
-  different types - it can only read/write <code>char</code>s (from/into,
-  by extension, <code>string</code>s). You are to write a class that
+  different types - it can only read/write <code>char</code>s (from/into
+  <code>string</code>s, by extension). You are to write a class that
   provides the following public functionality:
 </p>
 
 <pre>
 class DataStore {
 public:
-    // p is the persistance of data - when data is written
+    // p is the persistence of data - when data is written
     // to DataStore, it stays there for p seconds, after which
     // read will not include that expired data
   DataStore(int p);
@@ -107,23 +108,35 @@ public:
 </pre>
 
 <p>
-  The <strong>persistance</strong> of data is worth clarifying. When data is written
+  You can, of course, add any private member variables and functions
+  that you see fit. If you need to add a destructor you may,
+  although I'd recomment utilizing STL containers to provide
+  any functionality you'd like to get from dynamic memory.
+</p>
+
+<p>
+  The <strong>persistence</strong> of data is worth clarifying.
+  When data is written
   to DataStore, the DataStore doesn't keep track of it forever.
   There are many reasons to
   provide evict data from a DataStore. Maybe the DataStore models a
   cache and so when it fills up, the cache has to make space. Maybe it
   models a bus that only holds data instantaneously and only listeners
-  that read constantly receive that data. To simplify out model, we'll
-  say data persists some number of seconds before being cleaned up. Your
-  constructor should take in one integer parameter specifying exactly
-  how many seconds data written to the DataStore lasts. If the DataStore
-  notices that some data is out-of-date, it removes it, meaning subsequent
-  reads will not include that expired data.
+  that read constantly receive that data. To keep our model very general
+  , we'll say data persists some number of seconds before being cleaned up.
+  Your constructor should take in one integer parameter specifying exactly
+  how many seconds data written to the DataStore lasts.
+
+  This program is still designed to be entirely single threaded - 
+  we'll get to multi-threaded programs in a future lab. Because of
+  this, the DataStore cannot continuously monitor data it holds
+  to remove expired data as soon as it expires. Instead, your
+  DataStore class must ensure that when a read happens, no expired
+  data is read.
 </p>
 
 <p>
-  You, of course, can add any private functionality that you'd like
-  as long as your DataStore class obeys this interface. A user of this class
+  A user of this class
   can make a couple of assumptions that you must guarentee:<br>
 
   <ol>
@@ -132,13 +145,22 @@ public:
     it without error (if they fill your entire virtual address space,
     we'll let the underlying OS take care of things)<br>
 
-    2) <strong>DataStore has no privacy</strong>, as in when someone wants some data,
+    2) <strong>DataStore has no privacy</strong>, as in when
+    someone wants some data,
     they get all of the data in DataStore, not just the data at some
     address - they not only can assume this, but they must deal with
     this slight inconvenience (more on that later)<br>
 
-    3) <strong>DataStore's data cannot be altered</strong> - only added to. All I can do
-    is write (adds data) or read (find out all data in DataStore), I
+    3) <strong>DataStore's data cannot be altered</strong> - only added to.
+    All an application aware of the DataStore can do
+    is write (store more data) or read (get all data in DataStore), I
     cannot modify the data in the DataStore<br>
   </ol>
+</p>
+
+<h3>Your second task</h3>
+
+<p>
+  Now that we have a simple way of storing data in a general sense,
+  let's write some applications that share such data. 
 </p>
