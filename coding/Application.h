@@ -18,7 +18,9 @@ public:
 	// to some recipient
 	Application(string addr, DataStore& ds);
 	string heartbeat() const;
-	int addPresentConnections();
+	int connect();
+	bool record(DataType data);
+	int broadcast() const;
 
 private:
 	string m_address;
@@ -32,6 +34,7 @@ private:
 //////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////// IMPLMENTATION ////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////
+
 
   // intiitalize any private member variables
 template<template<class> class ProtocolPolicy, class EncodingPolicy,
@@ -51,7 +54,7 @@ string Application<ProtocolPolicy, EncodingPolicy, DataType, StoragePolicy>
 
 ::heartbeat() const
 {
-	string msg = this->prepareDataForWrite(m_address, this->HEARTBEAT);
+	string msg = this->prepareHeartbeat(m_address);
 	m_DataStore.write(msg);
 	return msg;
 }
@@ -62,7 +65,7 @@ template<template<class> class ProtocolPolicy, class EncodingPolicy,
 		 class DataType, template<class> class StoragePolicy>
 int Application<ProtocolPolicy, EncodingPolicy, DataType, StoragePolicy>
 
-::addPresentConnections()
+::connect()
 {
 	  // read the raw data
 	string memData;
@@ -91,4 +94,31 @@ int Application<ProtocolPolicy, EncodingPolicy, DataType, StoragePolicy>
 	}
 
 	return numAdded;
+}
+
+
+  // store the data using your storage and return true if it was
+  // successful
+template<template<class> class ProtocolPolicy, class EncodingPolicy,
+		 class DataType, template<class> class StoragePolicy>
+bool Application<ProtocolPolicy, EncodingPolicy, DataType, StoragePolicy>
+
+::record(DataType data)
+{
+	return this->store(data);
+}
+
+  // broadcast all of the stored data and return how much was sent
+template<template<class> class ProtocolPolicy, class EncodingPolicy,
+		 class DataType, template<class> class StoragePolicy>
+int Application<ProtocolPolicy, EncodingPolicy, DataType, StoragePolicy>
+
+::broadcast() const
+{
+	for (int i = 0; i < this->size(); i++) {
+		DataType data = this->get(i);
+		string message = this->prepareData(data.to_string());
+		m_DataStore.write(message);
+	}
+	return this->size();
 }

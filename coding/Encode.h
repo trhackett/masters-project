@@ -4,14 +4,24 @@
 #include <string>
 using namespace std;
 
+class SimpleEncoding {
+public:
+	string encode(string data) const;
+};
+
 class HuffmanEncoding {
 public:
-	string encodeData(string data) const;
+	string encode(string data) const;
 };
 
 #endif
 
-string HuffmanEncoding::encodeData(string data) const
+string SimpleEncoding::encode(string data) const
+{
+	return data;
+}
+
+string HuffmanEncoding::encode(string data) const
 {
 	return data;
 }

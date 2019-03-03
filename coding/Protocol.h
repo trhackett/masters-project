@@ -2,6 +2,7 @@
 #define PROTOCOL_H
 
 #include "Encode.h"
+#include <map>
 
 /*
 	SimpleProtocol is just that, simple.
@@ -11,39 +12,43 @@
 template<class EncodingPolicy>
 class SimpleProtocol : public EncodingPolicy {
 public:
+	// know what the header strings are for the types
+	SimpleProtocol();
 
 	// we need a series of types of headers that the Application can
 	// access to tell us what type of message is being sent, which we
 	// will use to format the message itself
 	enum MsgType { HEARTBEAT, DATA };
 
-	string prepareDataForWrite(string data, MsgType msgtype) const;
+	string prepareHeartbeat(string addr) const;
+	string prepareData(string data) const;
 	int getNextMessage(const string& rawData, MsgType& msgtype, string& data) const;
 
 private:
+	const map<MsgType,string> m_headers;
 };
 
 #endif
 
 template<class EncodingPolicy>
+SimpleProtocol<EncodingPolicy>::SimpleProtocol()
+ : m_headers({{HEARTBEAT,"HTBT"},{DATA,"DATA"}})
+{
+
+}
+
+
+template<class EncodingPolicy>
 string SimpleProtocol<EncodingPolicy>::
-prepareDataForWrite(string data, MsgType msgtype) const
+prepareHeartbeat(string addr) const
 {
 	  // the first four characters of the message specify the
 	  // type of message that it is - that's always true
-	string msg;
-	switch (msgtype) {
-		case HEARTBEAT:
-			msg = "HTBT";
-			break;
-		case DATA:
-			msg = "DATA";
-			break;
-	}
+	string msg = m_headers.at(HEARTBEAT);
 
 	  // IMPORTANT, I read somewhere why this is necessary
 	  // to call the template base class's function but can't remember
-	msg += this->encodeData(data);
+	msg += this->encode(addr);
 
 	return msg;
 }
@@ -86,4 +91,13 @@ getNextMessage(const string& rawData, MsgType& msgtype, string& data) const
 
 	// no messages found, so we've processed all the data
 	return rawData.size();
+}
+
+
+template<class EncodingPolicy>
+string SimpleProtocol<EncodingPolicy>::prepareData(string data) const
+{
+	string msg = m_headers.at(DATA);
+	msg += this->encode(data);
+	return msg;
 }

@@ -164,3 +164,13 @@ public:
   Now that we have a simple way of storing data in a general sense,
   let's write some applications that share such data. 
 </p>
+
+
+<p>
+  In this scenario, we have the application managing it's own connections,
+  which in practice we're unlikely to do. It'd be better - it would generalize
+  the class structure even better, if we were to provide a ConnectionManager
+  policy that takes care of setting up connections over the DataStore,
+  storing connections that it has, and connecting with other Applications.
+  But we won't go into that in this lab, you've done enough.
+</p>
