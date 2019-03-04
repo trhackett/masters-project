@@ -15,24 +15,34 @@ public:
 	// know what the header strings are for the types
 	SimpleProtocol();
 
+	  // write
+	string prepareHeartbeat(string addr) const;
+	string prepareData(string data, string addr) const;
+	  // read
+	bool getNextConnection(int& startIdx, const string& rawData, string& addr) const;
+	bool getNextData(int& startIdx, const string& rawData, string& data, string& addr) const;
+
+private:
 	// we need a series of types of headers that the Application can
 	// access to tell us what type of message is being sent, which we
 	// will use to format the message itself
-	enum MsgType { HEARTBEAT, DATA };
+	enum MsgType { HEARTBEAT, DATA, KEY };
 
-	string prepareHeartbeat(string addr) const;
-	string prepareData(string data) const;
-	int getNextMessage(const string& rawData, MsgType& msgtype, string& data) const;
-
-private:
 	const map<MsgType,string> m_headers;
+
+	  // take in some raw data, a start idx, and a MsgType
+	  // searches the rawdata for a header matching that msgtype
+	  // returns true if it finds it, setting idx to the first character
+	  // of that header, else false
+	bool getNextHeaderIdx(int& idx, const string& rawData, MsgType msgtype) const;
+	int getDataSize(int& start, const string& rawdata) const;
 };
 
 #endif
 
 template<class EncodingPolicy>
 SimpleProtocol<EncodingPolicy>::SimpleProtocol()
- : m_headers({{HEARTBEAT,"HTBT"},{DATA,"DATA"}})
+ : m_headers({{HEARTBEAT,"HTBT"},{DATA,"DATA"},{KEY,"DKEY"}})
 {
 
 }
@@ -48,9 +58,33 @@ prepareHeartbeat(string addr) const
 
 	  // IMPORTANT, I read somewhere why this is necessary
 	  // to call the template base class's function but can't remember
-	msg += this->encode(addr);
+	msg += this->encode(addr, nullptr);
 
 	return msg;
+}
+
+template<class EncodingPolicy>
+bool SimpleProtocol<EncodingPolicy>::
+
+getNextHeaderIdx(int& idx, const string& rawData, MsgType msgtype) const
+{
+	  // if we're looking out of bounds, return false
+	if (idx >= rawData.size()) {
+		return false;
+	}
+
+	  // get the potential header starting at each char, see if it's
+	  // a match and if you find one, return true
+	for (; idx != rawData.size(); idx++) {
+		string nextFour = rawData.substr(idx, 4);
+
+		if (nextFour == m_headers.at(msgtype)) {
+			return true;
+		}
+	}
+
+	  // if it's nowhere in the rawdata, return false
+	return false;
 }
 
   // this function takes in the raw data and gives the Application
@@ -63,41 +97,72 @@ prepareHeartbeat(string addr) const
   // rawData string that is passed in - that is, it tells the Application
   // that it processed all the data
 
-  // getNextMessage("HTBTLAXHTBTCVG", msgtype, data)
-  //    sets msgtype to HEARTBEAT and data to LAX and
-  //    returns 7
+  // getNextConnection(0, "HTBTLAXHTBTCVG", data)
+  //    sets startIdx to 7 and data to LAX and
+  //    returns true
+  // getNextConnection(0, "DATAcvgaopmsn", data)
+  //    returns false
 template<class EncodingPolicy>
-int SimpleProtocol<EncodingPolicy>::
-getNextMessage(const string& rawData, MsgType& msgtype, string& data) const
+bool SimpleProtocol<EncodingPolicy>::
+
+getNextConnection(int& startIdx, const string& rawData, string& addr) const
 {
-	  // we treat it as an error if an empty rawData has been passed in, return -1
-	if (rawData.empty()) {
-		return -1;
+	  // if there's another hearbeat message to get, get it
+	  // and return true
+	if (getNextHeaderIdx(startIdx, rawData, HEARTBEAT)) {
+		addr = rawData.substr(startIdx+4, 3); // addr is the next three past the header
+		addr = this->decode(addr, nullptr);   // decode
+		startIdx += 7;                        // processed 7 chars
+		return true;
 	}
 
-	  // if rawData is ok, process it
-	for (int i = 0; i != rawData.size(); i++) {
+	  // no messages found, so we've processed all the data and not found
+	  // a message of type msgtype
+	return false;
+}
 
-		  // get the next four characters
-		string nextFour = rawData.substr(i, 4);
+template<class EncodingPolicy>
+bool SimpleProtocol<EncodingPolicy>::
 
-		  // if HEARTBEAT
-		if (nextFour == "HTBT") {
-			msgtype = HEARTBEAT;            // heartbeat msg
-			data = rawData.substr(i+4, 3);  // addr is the next three
-			return i+7;                     // 7 characters past i processed
-		}
+getNextData(int& startIdx, const string& rawData, string& data, string& addr) const
+{
+	  // check if the data header is in there anywhere
+	if (getNextHeaderIdx(startIdx, rawData, DATA)) {
+		startIdx += 4;                               // move past the header
+		addr = rawData.substr(startIdx, 3);          // get the address
+		startIdx += 3;                               // move past the address
+		int size = getDataSize(startIdx, rawData);   // get data's size
+		startIdx += size;                            // move past the size
+		data = rawData.substr(startIdx, size);       // get the data
+		data = this->decode(data, nullptr);          // decode
+		return true;
 	}
 
-	// no messages found, so we've processed all the data
-	return rawData.size();
+	  // if data header isn't in there, no data
+	return false;
 }
 
 
 template<class EncodingPolicy>
-string SimpleProtocol<EncodingPolicy>::prepareData(string data) const
+string SimpleProtocol<EncodingPolicy>::prepareData(string data, string addr) const
 {
-	string msg = m_headers.at(DATA);
-	msg += this->encode(data);
+	string msg = m_headers.at(DATA) + addr;
+	msg += to_string(data.size());
+	msg += ',';
+	msg += this->encode(data, nullptr);
 	return msg;
+}
+
+
+template<class EncodingPolicy>
+int SimpleProtocol<EncodingPolicy>::
+
+getDataSize(int& start, const string& rawdata) const {
+	string ssize;
+	  // comma delimited, make sure it's always a digit
+	for (; rawdata[start] != ',' && rawdata[start] >= '0' && rawdata[start] <= '9'; start++) {
+		ssize += rawdata[start];
+	}
+
+	return stoi(ssize);
 }

@@ -7,8 +7,8 @@ using namespace std;
 template<class DataType>
 class SimpleStorage {
 public:
-	bool store(DataType data);
-	int size() const { return m_vec.size(); }
+	bool     store(DataType data);
+	int      size() const       { return m_vec.size(); }
 	DataType get(int idx) const { return m_vec[idx].value; }
 
 private:

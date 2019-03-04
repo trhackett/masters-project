@@ -7,6 +7,17 @@
 
 #include <set>
 
+
+struct Character {
+	char c;
+	Character(string s) : c(s[0]) {}
+	Character(char ch) : c(ch) {}
+
+	string to_writeable() {
+		return string {c};
+	}
+};
+
 template<template<class> class ProtocolPolicy, class EncodingPolicy,
 		 class DataType, template<class> class StoragePolicy>
 class Application: public ProtocolPolicy<EncodingPolicy>,
@@ -17,14 +28,16 @@ public:
 	// with the network and generate some data to be sent
 	// to some recipient
 	Application(string addr, DataStore& ds);
+
 	string heartbeat() const;
 	int connect();
-	bool record(DataType data);
+	int record(DataType data);
 	int broadcast() const;
+	int readMessages();
 
 private:
 	string m_address;
-	DataStore& m_DataStore;
+	DataStore& m_datastore;
 
 	set<string> m_connections;
 };
@@ -42,8 +55,9 @@ template<template<class> class ProtocolPolicy, class EncodingPolicy,
 Application<ProtocolPolicy, EncodingPolicy, DataType, StoragePolicy>
 
 ::Application(string addr, DataStore& ds)
-   : m_address(addr), m_DataStore(ds)    // init member variables
+   : m_address(addr), m_datastore(ds)    // init member variables
 {
+
 }
 
   // function that write this Application's address on the DataStore
@@ -55,7 +69,7 @@ string Application<ProtocolPolicy, EncodingPolicy, DataType, StoragePolicy>
 ::heartbeat() const
 {
 	string msg = this->prepareHeartbeat(m_address);
-	m_DataStore.write(msg);
+	m_datastore.write(msg);
 	return msg;
 }
 
@@ -67,30 +81,24 @@ int Application<ProtocolPolicy, EncodingPolicy, DataType, StoragePolicy>
 
 ::connect()
 {
+	  // clear old connections
+	m_connections.clear();
 	  // read the raw data
 	string memData;
-	m_DataStore.read(memData);
+	m_datastore.read(memData);
 
-	  // go through the data, adding any heartbeat addresses to your heartbeat set
-	typename ProtocolPolicy<EncodingPolicy>::MsgType msgtype;
+	  // go through the data, adding any connections to your connections set
+	  // count the number of connects added, start reading rawdata from first
+	  // element - getNextConnection returns true if there is another connection
+	int numAdded = 0, idx = 0;
 	string data;
-
-	  // count the number of connects added
-	int numAdded = 0;
-	while (!memData.empty()) {
-
-		  // returns the index of the character past all processed
-		  // data, or the length of memData if all is processed
-		int idx = this->getNextMessage(memData, msgtype, data);
+	while (this->getNextConnection(idx, memData, data)) {
 		
-		if (msgtype == this->HEARTBEAT) {
-			if (data != m_address && m_connections.insert(data).second) {
-				numAdded++;
-			}
+		  // try to add it to your connections, set::insert.second is true
+		  // on successful insertion
+		if (data != m_address && m_connections.insert(data).second) {
+			numAdded++;
 		}
-
-		  // if idx is memData.size(), this returns empty string
-		memData = memData.substr(idx);
 	}
 
 	return numAdded;
@@ -101,7 +109,7 @@ int Application<ProtocolPolicy, EncodingPolicy, DataType, StoragePolicy>
   // successful
 template<template<class> class ProtocolPolicy, class EncodingPolicy,
 		 class DataType, template<class> class StoragePolicy>
-bool Application<ProtocolPolicy, EncodingPolicy, DataType, StoragePolicy>
+int Application<ProtocolPolicy, EncodingPolicy, DataType, StoragePolicy>
 
 ::record(DataType data)
 {
@@ -116,9 +124,41 @@ int Application<ProtocolPolicy, EncodingPolicy, DataType, StoragePolicy>
 ::broadcast() const
 {
 	for (int i = 0; i < this->size(); i++) {
+		  // data from Storage
 		DataType data = this->get(i);
-		string message = this->prepareData(data.to_string());
-		m_DataStore.write(message);
+		  // prepare message with header
+		string message = this->prepareData(data.to_writeable(), m_address);
+		  // write to DataStore
+		m_datastore.write(message);
 	}
+
+	  // return number of Data elements written
 	return this->size();
+}
+
+
+  // read all of the data from the DataStore and store it locally
+template<template<class> class ProtocolPolicy, class EncodingPolicy,
+		 class DataType, template<class> class StoragePolicy>
+int Application<ProtocolPolicy, EncodingPolicy, DataType, StoragePolicy>
+
+::readMessages()
+{
+	string rawdata;
+	m_datastore.read(rawdata);
+
+	string data, addr;
+	int idx = 0, numMsgs = 0;
+
+	  // read the messages one by one, stopping when you've processed
+	  // all the raw data using the protocol
+	while (this->getNextData(idx, rawdata, data, addr)) {
+		  // store it if it isn't your data
+		if (addr != m_address) {
+			numMsgs++;
+			this->store(data);
+		}
+	}
+
+	return numMsgs;
 }

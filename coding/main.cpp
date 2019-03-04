@@ -5,79 +5,21 @@
 #include <fstream>     // ifstream
 
 #include "DataStore.h"
-#include "Application.h"
+#include "Airport.h"
 
-struct Route {
-	int numStops;
-	string codes;
-	Route(string c) : codes(c), numStops(c.size()/3) {}
-	string to_string() const { return codes; }
-};
-
-void testApplication();
+void testSimpleApplication();
 void testDataStore();
-void readInRoutes(map<string,vector<Route>>& arMap, string file);
-
-void testRealApplication()
-{
-	using AirportApp = Application<SimpleProtocol,HuffmanEncoding,
-									   Route,SimpleStorage>;
-
-	DataStore datastore(2);
-
-	map<string,vector<Route>> airport_route_map;
-	readInRoutes(airport_route_map, "routes.txt");
-
-	vector<AirportApp> airportVec;
-
-	  // make an airport for each one read in from the input file
-	map<string,vector<Route>>::iterator it = airport_route_map.begin();
-	for (; it != airport_route_map.end(); ++it) {
-
-		  // push a new one back
-		airportVec.push_back(AirportApp(it->first, datastore));
-
-		  // get the one you just inserted
-		AirportApp& airport = airportVec[airportVec.size()-1];
-
-		  // add the codes to it
-		for (int i = 0; i < it->second.size(); i++) {
-			assert(airport.record(it->second[i]));
-		}
-	}
-
-	  // map so "ABQ" < "CVG" < "LAX"
-	AirportApp& lax = airportVec[2];
-	AirportApp& cvg = airportVec[1];
-	AirportApp& abq = airportVec[0];
-
-	  // heartbeat so datastore knows about them for a while
-	const string HTBT_HDR = "HTBT";
-	assert(lax.heartbeat() == HTBT_HDR + "LAX");
-	assert(cvg.heartbeat() == HTBT_HDR + "CVG");
-	assert(abq.heartbeat() == HTBT_HDR + "ABQ");
-
-	  // connect to the others
-	assert(lax.connect() == 2);
-	assert(cvg.connect() == 2);
-	assert(abq.connect() == 2);
-
-	  // broadcast all data
-	assert(lax.broadcast() == airport_route_map["LAX"].size());
-	assert(cvg.broadcast() == airport_route_map["CVG"].size());
-	assert(abq.broadcast() == airport_route_map["ABQ"].size());
-}
 
 int main()
 {
-	// testDataStore();   // pass
+	testDataStore();         // pass
 
-	// testApplication(); // pass
+	testSimpleApplication(); // pass
 
 	// once both of those functions pass, you know that your Application
 	// class can successfully read from and write to the DataStore. Of
-	// course, we haven't done any kind of interesting encoding, nor are
-	// we storing any data at the application. Let's get to that.
+	// course, we haven't done any kind of interesting encoding.
+	// Let's get to that.
 
 	testRealApplication();
 
@@ -85,6 +27,62 @@ int main()
 }
 
 
+
+void testSimpleApplication()
+{
+	using SimpleApp = Application<SimpleProtocol,SimpleEncoding,
+							  Character,SimpleStorage>;
+
+	DataStore memory(2);      // data written to memory lasts 2 seconds
+
+	SimpleApp app1("LAX", memory);
+	SimpleApp app2("CVG", memory);
+	SimpleApp app3("ABQ", memory);
+
+	  // first, we want everyone connected to memory to
+	  // know about each other - so have each tell the others
+	  // they're there by putting its address on memory
+	const string HTBT_HDR = "HTBT";
+	assert(app1.heartbeat() == HTBT_HDR + "LAX"); // make sure the message is right
+	assert(app2.heartbeat() == HTBT_HDR + "CVG");
+	assert(app3.heartbeat() == HTBT_HDR + "ABQ");
+
+	  // make sure everything was written properly to the memory
+	string htbts = HTBT_HDR + "LAX" + HTBT_HDR + "CVG" + HTBT_HDR + "ABQ";
+	string readData;
+	memory.read(readData);
+	assert(htbts == readData);
+
+	  // when they check to see who else is connected,
+	  // they each discover the other two
+	assert(app1.connect() == 2);
+	assert(app2.connect() == 2);
+	assert(app3.connect() == 2);
+
+	  // make some arbitrary data
+	string app1Data = "kylie";
+	for (int i = 0; i != app1Data.size(); i++) {
+		assert(app1.record(app1Data[i]) >= 0);
+	}
+
+	string app2Data = "kim";
+	for (int i = 0; i != app2Data.size(); i++) {
+		assert(app2.record(app2Data[i]) >= 0);
+	}
+
+	string app3Data = "khloe";
+	for (int i = 0; i != app3Data.size(); i++) {
+		assert(app3.record(app3Data[i]) >= 0);
+	}
+
+	assert(app1.broadcast() == app1Data.size());
+	assert(app2.broadcast() == app2Data.size());
+	assert(app3.broadcast() == app3Data.size());
+
+	assert(app1.readMessages() == app2Data.size() + app3Data.size());
+	assert(app2.readMessages() == app1Data.size() + app3Data.size());
+	assert(app3.readMessages() == app1Data.size() + app2Data.size());
+}
 
 void testDataStore()
 {
@@ -143,63 +141,4 @@ void testDataStore()
 	sleep(3);
 	m.read(s);
 	assert(s == "");
-}
-
-void testApplication()
-{
-	using SimpleApp = Application<SimpleProtocol,SimpleEncoding,
-							  char,SimpleStorage>;
-
-	DataStore memory(2);      // data written to memory lasts 2 seconds
-
-	SimpleApp app1("LAX", memory);
-	SimpleApp app2("CVG", memory);
-	SimpleApp app3("ABQ", memory);
-
-	  // first, we want everyone connected to memory to
-	  // know about each other - so have each tell the others
-	  // they're there by putting its address on memory
-	const string HTBT_HDR = "HTBT";
-	assert(app1.heartbeat() == HTBT_HDR + "LAX"); // make sure the message is right
-	assert(app2.heartbeat() == HTBT_HDR + "CVG");
-	assert(app3.heartbeat() == HTBT_HDR + "ABQ");
-
-	  // make sure everything was written properly to the memory
-	string htbts = HTBT_HDR + "LAX" + HTBT_HDR + "CVG" + HTBT_HDR + "ABQ";
-	string readData;
-	memory.read(readData);
-	assert(htbts == readData);
-
-	  // when they check to see who else is connected,
-	  // they each discover the other two
-	assert(app1.connect() == 2);
-	assert(app2.connect() == 2);
-	assert(app3.connect() == 2);
-}
-
-void readInRoutes(map<string,vector<Route>>& arMap, string file)
-{
-	ifstream input(file);
-
-	if (input.is_open()) {
-
-		while (!input.eof()) {
-			getline(input, file);
-
-			if (!file.empty()) {
-				// get the index of the first space, take all
-				// characters up to that space - that's the airport code
-				int spaceIdx = file.find(' ');
-				string code = file.substr(0, spaceIdx);
-				int numRoutes = stoi(file.substr(spaceIdx+1));
-
-				arMap[code] = {}; // init empty vector
-
-				while (numRoutes-- > 0) {
-					getline(input, file);
-					arMap[code].push_back(Route(file));
-				}
-			}
-		}
-	}
 }
