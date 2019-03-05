@@ -12,9 +12,9 @@ void testDataStore();
 
 int main()
 {
-	testDataStore();         // pass
+	testDataStore();
 
-	testSimpleApplication(); // pass
+	testSimpleApplication();
 
 	// once both of those functions pass, you know that your Application
 	// class can successfully read from and write to the DataStore. Of
@@ -27,13 +27,36 @@ int main()
 }
 
 
+/*
+	Function that tests a very simple version of the application. It defines
+	a SimpleApp that uses the most reduced versions of each Policy, creates
+	three instances of SimpleApp with addresses, has them connect to the DataStore
+	with a heartbeat, learn about the existence of the others, write some data
+	to the DataStore, and receive each other's data.
 
+	If you changed minor things based on intentional ambiguities in the spec,
+	that's fine. You may have to adjust these tests as well.
+*/
 void testSimpleApplication()
 {
+	  // Character is a simple wrapper around char. We need
+	  // to provide a to_writeable function that returns a
+	  // string for any type that is going to be used by the
+	  // Application.
+	struct Character {
+		char c;
+		Character(string s) : c(s[0]) {}
+		Character(char ch) : c(ch) {}
+
+		string to_writeable() {
+			return string {c};
+		}
+	};
+
 	using SimpleApp = Application<SimpleProtocol,SimpleEncoding,
 							  Character,SimpleStorage>;
 
-	DataStore memory(2);      // data written to memory lasts 2 seconds
+	DataStore memory(2); // data written to memory lasts 2 seconds
 
 	SimpleApp app1("LAX", memory);
 	SimpleApp app2("CVG", memory);
@@ -75,15 +98,23 @@ void testSimpleApplication()
 		assert(app3.record(app3Data[i]) >= 0);
 	}
 
+	  // everyone writes all of their data to the DataStore
 	assert(app1.broadcast() == app1Data.size());
 	assert(app2.broadcast() == app2Data.size());
 	assert(app3.broadcast() == app3Data.size());
 
+	  // and everyone reads all data that isn't their own.
 	assert(app1.readMessages() == app2Data.size() + app3Data.size());
 	assert(app2.readMessages() == app1Data.size() + app3Data.size());
 	assert(app3.readMessages() == app1Data.size() + app2Data.size());
 }
 
+
+/*
+	This function tests the functionality of the DataStore class.
+	In particular, it ensures that data actually only persists
+	for the number of seconds passed in to the Constructor.
+*/
 void testDataStore()
 {
 	cout << "please hold for 15 seconds" << endl;

@@ -7,7 +7,7 @@ using namespace std;
 template<class DataType>
 class SimpleStorage {
 public:
-	bool     store(DataType data);
+	int      store(DataType data);
 	int      size() const       { return m_vec.size(); }
 	DataType get(int idx) const { return m_vec[idx].value; }
 
@@ -24,8 +24,8 @@ private:
 #endif
 
 template<class DataType>
-bool SimpleStorage<DataType>::store(DataType data)
+int SimpleStorage<DataType>::store(DataType data)
 {
 	m_vec.push_back(Data(data));
-	return true;
+	return m_vec.size()-1;
 }

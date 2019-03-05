@@ -7,38 +7,57 @@
 
 #include <set>
 
-
-struct Character {
-	char c;
-	Character(string s) : c(s[0]) {}
-	Character(char ch) : c(ch) {}
-
-	string to_writeable() {
-		return string {c};
-	}
-};
-
+  // four policies: Protocol, Encoding, DataType, Storage
+  // Protocol and Storage are class templates - Protocol needs
+  // an Encoding class and Storage needs a DataType specified.
 template<template<class> class ProtocolPolicy, class EncodingPolicy,
 		 class DataType, template<class> class StoragePolicy>
 class Application: public ProtocolPolicy<EncodingPolicy>,
 				   public StoragePolicy<DataType>
 {
 public:
-	// the constructor should connect this computer
-	// with the network and generate some data to be sent
-	// to some recipient
+	  // every Application knows it's own address and
+	  // the DataStore that it's connected to.
 	Application(string addr, DataStore& ds);
 
+	  // heartbeat is how the Application makes its presence
+	  // known to other Applications on the DataStore - it posts
+	  // it's own address on the DataStore for others to discover.
+	  // The return value is the string message that is written
+	  // for testing purposes.
 	string heartbeat() const;
+
+	  // connect searches the DataStore for heartbeat messages,
+	  // and adds the address in the message to it's connections
+	  // if they are not already connected. Since an Application
+	  // that doesn't have a heartbeat message on the DataStore
+	  // is no longer considered available, my connections should
+	  // be cleared every time I check for new connections. This
+	  // function returns the number of connects added. 
 	int connect();
+
+	  // record is how the Application learns new data - all new
+	  // data is stored and the index of the stored object is
+	  // returned. This should be made more general, but it's not
+	  // clear to me how atm.
 	int record(DataType data);
+
+	  // broadcast writes all stored data to DataStore in a separate
+	  // data message (determined by the Protocol). It returns the
+	  // number of messages written to DataStore.
 	int broadcast() const;
+
+	  // readMessages reads all data messages on the DataStore, that
+	  // were not put there by me. There are added to our Storage
+	  // (stored locally) and the number of messages stored is returned.
 	int readMessages();
 
 private:
 	string m_address;
 	DataStore& m_datastore;
 
+	  // log time to know if I already have a connection and easy
+	  // to erase.
 	set<string> m_connections;
 };
 

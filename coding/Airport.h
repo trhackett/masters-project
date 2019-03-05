@@ -3,6 +3,14 @@
 
 #include "Application.h"
 
+/*
+	Route objects have a string of sequential airport codes:
+	an airplane is scheduled to fly from airport to airport.
+	Since there are no delimiters in the string, the number
+	of stops is always a third the size of the codes string.
+
+	"LAXSFOOAKMSP" LAX -> SFO -> OAK -> MSP, 4 stops
+*/
 struct Route {
 	int numStops;
 	string codes;
@@ -13,12 +21,29 @@ struct Route {
 	}
 };
 
+/*
+	The airport is basically a specialization of the Application
+	template class using SimpleProtocol, HuffmanEncoding, Route,
+	and SimpleStorage. It's a very simple experiment on extending
+	the functionality of the Application even further.
+*/
 class Airport :
 	public Application<SimpleProtocol,HuffmanEncoding,Route,SimpleStorage>
 {
 public:
+
+	  // takes in a list of routes to store - all originate at this
+	  // address.
 	Airport(string addr, DataStore& ds, const vector<Route>& routes);
+
+	  // alertAirports() not only makes you discoverable by other airports
+	  // but writes your routes to the DataStore so that others can learn
+	  // your routes.
 	void alertAirports() const;
+
+	  // gatherData() reads in data from airports currently broadcasting
+	  // on the DataStore. It stores an routes on the DataStore along
+	  // with our own.
 	void gatherData();
 };
 
@@ -49,6 +74,11 @@ void Airport::gatherData()
 }
 
 
+
+/*
+	Some external testing functions called by main() to ensure
+	Airport does the right thing.
+*/
 void readInRoutes(map<string,vector<Route>>& arMap, string file)
 {
 	ifstream input(file);
