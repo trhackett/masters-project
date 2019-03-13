@@ -5,40 +5,50 @@
 template<class> class RefCountedPtrImpl;
 
 template<class T>
-class CleanlyPtr {
+class LeakLessPtr {
 public:
 	// return type, *funcName, argument type(s)
 	using AllocFunc = T* (*) ();
 	using FreeFunc =  void (*) (T*);
 
-	CleanlyPtr(AllocFunc aFunc, FreeFunc fFunc);
-	~CleanlyPtr();
+	LeakLessPtr(AllocFunc aFunc, FreeFunc fFunc);
+	~LeakLessPtr();
 
-	int getNumRefs() const { return pImpl->getNumRefs(); }
+	T& operator*() const { return pImpl->operator*(); }
+	bool operator==(const T* other) const { return pImpl->operator==(other); }
+	bool operator!=(const T* other) const { return pImpl->operator!=(other); }
+	bool operator==(const LeakLessPtr<T>& other) const { return pImpl->operator==(other.pImpl); }
+	bool operator!=(const LeakLessPtr<T>& other) const { return pImpl->operator!=(other.pImpl); }
+
 private:
 	RefCountedPtrImpl<T>* pImpl;
+};
+
+template<class T>
+class RefCountedPtrImpl {
+public:
+	using AllocFunc = typename LeakLessPtr<T>::AllocFunc;
+	using FreeFunc =  typename LeakLessPtr<T>::FreeFunc;
+
+	RefCountedPtrImpl(AllocFunc a, FreeFunc f);
+	~RefCountedPtrImpl();
+
+	T& operator*() const;
+	bool operator==(const T* other) const;
+	bool operator!=(const T* other) const;
+	bool operator==(const RefCountedPtrImpl<T>* other) const;
+	bool operator!=(const RefCountedPtrImpl<T>* other) const;
+
+private:
+	FreeFunc deleteFunc;
+	AllocFunc newFunc;
+	T* const ptr;
+	int* numReferences;
 };
 
 #endif
 
 
-template<class T>
-class RefCountedPtrImpl {
-public:
-	using AllocFunc = typename CleanlyPtr<T>::AllocFunc;
-	using FreeFunc =  typename CleanlyPtr<T>::FreeFunc;
-
-	RefCountedPtrImpl(AllocFunc a, FreeFunc f);
-	~RefCountedPtrImpl();
-
-	int getNumRefs() const { return *numReferences; }
-
-private:
-	FreeFunc deleteFunc;
-	AllocFunc newFunc;
-	T* ptr;
-	int* numReferences;
-};
 
 template<class T>
 RefCountedPtrImpl<T>::RefCountedPtrImpl(AllocFunc nFunc, FreeFunc dFunc)
@@ -57,6 +67,31 @@ RefCountedPtrImpl<T>::~RefCountedPtrImpl()
 	}
 }
 
+template<class T>
+T& RefCountedPtrImpl<T>::operator*() const {
+	return *ptr;
+}
+
+template<class T>
+bool RefCountedPtrImpl<T>::operator==(const T* other) const {
+	return ptr == other;
+}
+
+template<class T>
+bool RefCountedPtrImpl<T>::operator!=(const T* other) const {
+	return ptr != other;
+}
+
+template<class T>
+bool RefCountedPtrImpl<T>::operator==(const RefCountedPtrImpl<T>* other) const {
+	return ptr == other->ptr;
+}
+
+template<class T>
+bool RefCountedPtrImpl<T>::operator!=(const RefCountedPtrImpl<T>* other) const {
+	return ptr != other->ptr;
+}
+
 
 
 
@@ -65,12 +100,12 @@ RefCountedPtrImpl<T>::~RefCountedPtrImpl()
 //////////////////////////////// Past Implementation ///////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
 template<class T>
-CleanlyPtr<T>::CleanlyPtr(AllocFunc aFunc, FreeFunc fFunc) {
+LeakLessPtr<T>::LeakLessPtr(AllocFunc aFunc, FreeFunc fFunc) {
 	pImpl = new RefCountedPtrImpl<T>(aFunc, fFunc);
 }
 
 template<class T>
-CleanlyPtr<T>::~CleanlyPtr() {
+LeakLessPtr<T>::~LeakLessPtr() {
 	delete pImpl;
 }
 
@@ -91,10 +126,10 @@ CleanlyPtr<T>::~CleanlyPtr() {
 
 
 // template<class T>
-// class CleanlyPtr : public BasePtr {
+// class LeakLessPtr : public BasePtr {
 // public:
-// 	CleanlyPtr() { }
-// 	~CleanlyPtr() { }
+// 	LeakLessPtr() { }
+// 	~LeakLessPtr() { }
 
 // 	T& getObject() const { return *static_cast<T*>(BasePtr::getObject()); }
 // 	void pointTo(T& obj) { BasePtr::pointTo(static_cast<void*>(obj)); }

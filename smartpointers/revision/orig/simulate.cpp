@@ -23,7 +23,7 @@ void run(Timer& t, double& constructTime, double& simulationTime,
 	t.start();
 
 	// start simulation
-	aveStartToFinishTime = sim.runSimulation();
+	// aveStartToFinishTime = sim.runSimulation();
 	simulationTime = t.elapsed();
 
 	// restart time

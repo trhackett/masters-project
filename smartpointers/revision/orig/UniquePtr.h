@@ -29,6 +29,8 @@
 #define UNIQUE_PTR_H
 
 #include "BasePtr.h"
+#include <iostream>
+using namespace std;
 
 // T is the type object that it pointed to
 template <class T>
@@ -115,6 +117,7 @@ UniquePtr<T>::UniquePtr(T* pointee, void (*dFunc) (T*))
   // call the BasePtrImpl with these args first and init reference
   : BasePtr<T>(pointee), m_deleteFunc(dFunc)
 {
+	cout << "unique func cunstructor" << endl;
 }
 
 
@@ -133,6 +136,7 @@ UniquePtr<T>::UniquePtr(UniquePtr<T>& other)
  : BasePtr<T>(other.basePointee),
    m_deleteFunc(other.m_deleteFunc)
 {
+	cout << boolalpha << (this->basePointee == nullptr) << endl;
 	  // other can't point to it anymore
 	other.basePointee = nullptr;
 }

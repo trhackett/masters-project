@@ -50,13 +50,13 @@ private:
 };
 
 
-/* ============================================================================
+/* ================================================================================
 	Each simulation has a grid of Intersections that has a list of cars which will
 	change as the simulation progresses.
 
 	There can be any number of cars at an intersection at any given time but a car
 	can be at only one intersection at any given time.
-   ============================================================================ */
+   ================================================================================ */
 class Intersection {
 public:
 	Intersection()
@@ -75,16 +75,18 @@ public:
 	void removeCar()
 		{ cars.pop_front(); }
 	void addCar(SmartPtr<Car, SharedPtr> carPtr)
-		{ cars.push_back(carPtr); }
+	{
+		cars.push_back(carPtr);
+	}
 
 
 private:
 	list<SmartPtr<Car, SharedPtr>> cars;
 };
 
-/* ============================================================================
+/* ================================================================================
 	Route Computer
-   ============================================================================ */
+   ================================================================================ */
 
 class RouteComputer {
 public:

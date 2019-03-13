@@ -10,11 +10,13 @@
 
 #include "BasePtr.h"
 #include <utility>
+#include <iostream>
+using namespace std;
 
 template<class Object, template<class> class Impl>
 class SmartPtr {
 public:
-	SmartPtr();
+	// SmartPtr();
 	  // main constructor takes in a pointer to a function
 	  // for allocated memory and a function for deleting
 	  // that memory
@@ -122,12 +124,12 @@ private:
 
   // default constructor sets the pointers to nullptr and
   // constructs a new Impl with its default constructor
-template<class Object, template<class> class Impl>
-SmartPtr<Object, Impl>::SmartPtr()
- : pImpl(new Impl<Object>())
-{
-	  // default constructor
-}
+// template<class Object, template<class> class Impl>
+// SmartPtr<Object, Impl>::SmartPtr()
+//  : pImpl(new Impl<Object>())
+// {
+// 	  // default constructor
+// }
 
 
 template<class Object, template<class> class Impl>
@@ -135,6 +137,7 @@ SmartPtr<Object, Impl>::SmartPtr(Object* (*newFunc) (),
 							     void (*deleteFunc) (Object*))
  : pImpl(new Impl<Object>(newFunc(), deleteFunc))
 {
+	cout << "func constructor" << endl;
 	  // the implementation takes care of what happens when we re-assign
 	  // delete, reset, etc
 }
@@ -144,6 +147,7 @@ template<class Object, template<class> class Impl>
 SmartPtr<Object, Impl>::SmartPtr(void (*deleteFunc) (Object*))
  : pImpl(new Impl<Object>(deleteFunc))
 {
+	cout << "delete func only constructor" << endl;
 }
 
 
@@ -152,6 +156,7 @@ template<class Object, template<class> class Impl>
 SmartPtr<Object, Impl>::SmartPtr(const SmartPtr<Object, Impl>& other)
  : pImpl(new Impl<Object>(*other.pImpl))
 {
+	cout << "copy constructor" << endl;
 }
 
 
@@ -160,6 +165,7 @@ template<class Object, template<class> class Impl>
 SmartPtr<Object, Impl>::SmartPtr(SmartPtr<Object, Impl>&& mover)
  : pImpl(new Impl<Object>(std::move(*mover.pImpl)))
 {
+	cout << "move constructor" << endl;
 	  // call impl's move constructor - is there a better way than using
 	  // std::move??? I don't think there is
 }
@@ -204,6 +210,7 @@ void SmartPtr<Object, Impl>::reset(Object* obj, void (*dFunc) (Object*))
 template<class Object, template<class> class Impl>
 SmartPtr<Object, Impl>::~SmartPtr()
 {
+	cout << "destruct" << endl;
 	  // Impl<T>::~Impl() - Impl has to take care
 	  // of allocating the memory, it's part of the 
 	  // implementation

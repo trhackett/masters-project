@@ -32,26 +32,12 @@ double Car::getHValue(int row, int col, const Simulation* sim) {
 
 
 Simulation::Simulation(int r, int c, int sR, int sC, int eR, int eC, int F, int numI, int carM)
- : maxRows(r), maxCols(c), startRow(sR), startCol(sC),
+ : iGrid(r, vector<SmartPtr<Intersection, UniquePtr>>(c)),
+   maxRows(r), maxCols(c), startRow(sR), startCol(sC),
    endRow(eR), endCol(eC), carFrequency(F),
    carMovement(carM), numIterations(numI)
 {
-	  // intersections is currently empty - we need to set up the
-	  // environment by creating a bunch of intersection with their
-	  // delete functions
-	for (int i = 0; i < maxRows; i++) {
-		iGrid.push_back(
-			vector<SmartPtr<Intersection, UniquePtr>>(maxCols)
-		);
-	}
-
-	for (int i = 0; i < maxRows; i++) {
-		for (int j = 0; j < maxCols; j++) {
-			iGrid[i][j].reset(
-				new Intersection(),
-				[] (Intersection* i) { delete i; });
-		}
-	}
+	cout << "simulation constructor done" << endl;
 }
 
 

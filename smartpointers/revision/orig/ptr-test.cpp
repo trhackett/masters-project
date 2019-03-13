@@ -271,7 +271,9 @@ int testSharedPtr() {
 		}
 
 
-		SmartPtr<char, SharedPtr> cptr3;
+		SmartPtr<char, SharedPtr> cptr3(
+			[] () { return new char; },
+			[] (char* c) { delete c; });
 
 		if (cptr3 != nullptr) {
 			return 8;
