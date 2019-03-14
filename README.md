@@ -15,7 +15,7 @@ for writing advanced C++ code:
 
 The first lab addresses ways to manage allocated data in C++. It is designed to
 be a precursor to the semantics of C++11's unique_ptr and shared_ptr. The
-[specification](smartpointers/final-lab/spec.html) provides details of what
+[specification](pointers/spec.html) provides details of what
 exactly is asked of students. The code in [this directory](smartpointers/final-lab/)
 is provided as a solution for the spec.
 
