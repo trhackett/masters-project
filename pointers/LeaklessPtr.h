@@ -40,6 +40,9 @@ public:
 	bool operator==(const LeaklessPtr<T,Impl>& other) const;
 	bool operator!=(const LeaklessPtr<T,Impl>& other) const;
 
+	T* operator+(int offset) const;
+	T* operator-(int offset) const;
+
 private:
 	BasePtrImpl<T>* pImpl;
 };
@@ -74,6 +77,8 @@ public:
 	bool operator!=(const T* other) const;
 	bool operator==(const BasePtrImpl<T>& other) const;
 	bool operator!=(const BasePtrImpl<T>& other) const;
+	T* operator+(int offset) const;
+	T* operator-(int offset) const;
 
 	virtual ~BasePtrImpl() = 0;
 	virtual BasePtrImpl<T>& operator=(BasePtrImpl<T>& rhs) = 0;
@@ -201,6 +206,10 @@ template<class T> bool BasePtrImpl<T>::operator==(const BasePtrImpl<T>& other) c
 	{ return this->ptr == other.ptr; }
 template<class T> bool BasePtrImpl<T>::operator!=(const BasePtrImpl<T>& other) const
 	{ return this->ptr != other.ptr; }
+template<class T> T* BasePtrImpl<T>::operator+(int offset) const
+	{ return ptr+offset; }
+template<class T> T* BasePtrImpl<T>::operator-(int offset) const
+	{ return ptr-offset; }
 
 
 
@@ -405,6 +414,12 @@ template<class T, template<class> class Impl>
 bool LeaklessPtr<T,Impl>::operator!=(const LeaklessPtr<T,Impl>& other) const {
 	return pImpl->operator!=(*other.pImpl);
 }
+
+template<class T, template<class> class Impl>
+T* LeaklessPtr<T,Impl>::operator+(int offset) const { return pImpl->operator+(offset); }
+
+template<class T, template<class> class Impl>
+T* LeaklessPtr<T,Impl>::operator-(int offset) const { return pImpl->operator-(offset); }
 
 // dummy destructor so that we can't initialize classes
 // of type BasePtrImpl

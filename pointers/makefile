@@ -11,5 +11,8 @@ mem-test: main
 sim: simulation.h simulation.cpp simulate.cpp LeaklessPtr.h
 	$(GCC) simulation.cpp simulate.cpp -o sim
 
+sim-mem: sim
+	$(VALGRIND) ./sim
+
 clean:
-	rm main
+	rm main sim

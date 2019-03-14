@@ -4,15 +4,6 @@
 #include <queue>
 
 
-Car::Car(int row, int col)
- : m_row(row), m_col(col)
-{
-	lastIterMoved = -1;
-	routeComputeTime = 0.0;
-	m_timer.start();
-}
-
-
 Simulation::Simulation(int r, int c, int sR, int sC, int eR, int eC, int F, int numI, int carM,
 					   double (*hFunc) (int, int, const Simulation*))
  : maxRows(r), maxCols(c), startRow(sR), startCol(sC),
@@ -37,7 +28,7 @@ Simulation::~Simulation()
 }
 
 
-double Simulation::runSimulation() {
+Stats Simulation::runSimulation() {
 
 	  // each run of the for loop is an iteration
 	for (currentIteration = 0; currentIteration < numIterations; currentIteration++) {
@@ -87,21 +78,24 @@ void Simulation::moveCarsAtIntersection(int row, int col) {
 	}
 }
 
-double Simulation::computeStats() {
-	double ave = 0.0;
+Stats Simulation::computeStats() {
+	double sum = 0.0;
+	int n = startToFinishTimes.size();
 
 	for (size_t i = 0; i < startToFinishTimes.size(); i++) {
-		ave += startToFinishTimes[i];
+		sum += startToFinishTimes[i];
 	}
 
-	return ave / (double)startToFinishTimes.size();
+	return Stats(n, sum/(double)n);
 }
 
 
 void Simulation::insertNewCar() {
 	LeaklessPtr<Car, AltruisticPtrImpl> temp(
-		[=] () { return new Car(startRow, startCol); }, 
+		[] () { return new Car; }, 
 		[] (Car* c) { delete c; });
+
+	temp->init(startRow, startCol);
 
 	  // it is located in an intersection
 	iGrid[startRow][startCol]->addCar(temp);

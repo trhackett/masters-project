@@ -17,7 +17,7 @@ double avoidTraffic(int row, int col, const Simulation* sim) {
 }
 
 void run(Timer& t, double& constructTime, double& simulationTime,
-		 double& aveStartToFinishTime) {
+		 Stats& aveStartToFinishTime) {
 	
 	// restart time to account for function call time
 	t.start();
@@ -28,8 +28,8 @@ void run(Timer& t, double& constructTime, double& simulationTime,
 				   9, 9,    // endRow and endCol
 				   5,       // number of cars to enter per iteration
 				   100,     // number of iterations 
-				   ,        // number of cars that leave intersection each iteration
-				   &manhattenDistance); // heuristic function      
+				   1,       // number of cars that leave intersection each iteration
+				   &avoidTraffic); // heuristic function
 	constructTime = t.elapsed();
 
 	// restart timer
@@ -45,15 +45,15 @@ void run(Timer& t, double& constructTime, double& simulationTime,
 }
 
 int main() {
-	double constructTime, simulationTime, destructAndReturnTime,
-	       aveStartToFinishTime;
+	double constructTime, simulationTime, destructAndReturnTime;
+	Stats stats;
 	// start timer
 	Timer t;
-	run(t, constructTime, simulationTime, aveStartToFinishTime);
+	run(t, constructTime, simulationTime, stats);
 	destructAndReturnTime = t.elapsed();
 
-	cout << "Cars took on average " << aveStartToFinishTime
-	     << "ms to complete route" << endl;
+	cout << stats.numCarsMadeIt << " cars made it from start to finish, ";
+	cout << "taking on average " << stats.aveTime << " ms to do so" << endl;
 
 	cout << "Construction time " << constructTime << "ms" << endl;
 	cout << "Simulation took " << simulationTime << "ms" << endl;

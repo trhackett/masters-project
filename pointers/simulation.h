@@ -14,13 +14,28 @@ enum Direction { Up, Right, Down, Left, Bad };
 
 class Simulation;
 
+struct Stats {
+	int numCarsMadeIt;
+	double aveTime;
+	Stats(int n, double d) : numCarsMadeIt(n), aveTime(d) {}
+	Stats() : numCarsMadeIt(0), aveTime(0.0) {}
+};
+
 /* ============================================================================
 	Cars can have individual heuristic functions and each has their
 	own position and timer running
    ============================================================================ */
 class Car {
 public:
-	Car(int r, int c);
+	Car() {}
+
+	void init(int r, int c) {
+		m_row = r;
+		m_col = c;
+		lastIterMoved = -1;
+		routeComputeTime = 0.0;
+		m_timer.start();
+	}
 
 
 	  // basic get/set functions
@@ -127,7 +142,7 @@ public:
 	Simulation(int r, int c, int sR, int sC, int eR, int eC, int Fz, int numI, int numC,
 			   double (*hFunc) (int, int, const Simulation*));
 	~Simulation();
-	double runSimulation();
+	Stats runSimulation();
 
 	int getEndRow() const  { return endRow; }
 	int getEndCol() const  { return endCol; }
@@ -187,7 +202,7 @@ private:
 
 	  // only basic stats
 	vector<double> startToFinishTimes;
-	double computeStats();
+	Stats computeStats();
 };
 
 #endif
