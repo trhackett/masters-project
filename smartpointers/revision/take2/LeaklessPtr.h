@@ -40,18 +40,17 @@ private:
 
 
 template<class T>
-struct BasePtrImpl {
+class BasePtrImpl {
 
+public:
 	using AllocFunc = typename LeaklessPtr<T,BasePtrImpl>::AllocFunc;
 	using FreeFunc  = typename LeaklessPtr<T,BasePtrImpl>::FreeFunc;
-
-	AllocFunc allocFunc;
-	FreeFunc freeFunc;
-	T* ptr;
 
 	BasePtrImpl(AllocFunc a, FreeFunc f);
 	BasePtrImpl(BasePtrImpl<T>&& mover);
 	BasePtrImpl(T* movedPtr, AllocFunc a, FreeFunc f);
+
+	BasePtrImpl(BasePtrImpl<T>& other);
 
 	T& operator*() const;
 	T* operator->() const;
@@ -62,14 +61,22 @@ struct BasePtrImpl {
 	bool operator!=(const BasePtrImpl<T>& other) const;
 
 	virtual ~BasePtrImpl() = 0;
-	BasePtrImpl(BasePtrImpl<T>& other) = delete;
-	BasePtrImpl<T>& operator=(BasePtrImpl<T>& rhs) = delete;
+	virtual BasePtrImpl<T>& operator=(BasePtrImpl<T>& rhs) = 0;
+
+protected:
+	AllocFunc allocFunc;
+	FreeFunc freeFunc;
+	T* ptr;
+
+	void freeDataIfThere();
+	virtual void removeReference() = 0;
 };
 
 
 template<class T>
-struct SelfishPtrImpl : public BasePtrImpl<T> {
+class SelfishPtrImpl : public BasePtrImpl<T> {
 
+public:
 	using AllocFunc = typename BasePtrImpl<T>::AllocFunc;
 	using FreeFunc = typename BasePtrImpl<T>::FreeFunc;
 
@@ -77,14 +84,21 @@ struct SelfishPtrImpl : public BasePtrImpl<T> {
 	SelfishPtrImpl(SelfishPtrImpl<T>&& mover);
 	~SelfishPtrImpl();
 
-	// can't copy Singleton pointers
-	SelfishPtrImpl(SelfishPtrImpl<T>& other) = delete;
-	SelfishPtrImpl<T>& operator=(SelfishPtrImpl<T>& rhs) = delete;
+	// steal 
+	SelfishPtrImpl(SelfishPtrImpl<T>& other);
+	BasePtrImpl<T>& operator=(BasePtrImpl<T>& rhs) override;
+
+private:
+	// doesn't have reference count
+	void removeReference() {}
+	void incRefsf() {}
+	void decRefs()  {}
 };
 
-/*template<class T>
-struct AltruisticPtrImpl : public BasePtrImpl<T> {
+template<class T>
+class AltruisticPtrImpl : public BasePtrImpl<T> {
 
+public:
 	using AllocFunc = typename BasePtrImpl<T>::AllocFunc;
 	using FreeFunc = typename BasePtrImpl<T>::FreeFunc;
 
@@ -93,8 +107,14 @@ struct AltruisticPtrImpl : public BasePtrImpl<T> {
 	~AltruisticPtrImpl();
 
 	AltruisticPtrImpl(AltruisticPtrImpl<T>& other);
-	AltruisticPtrImpl<T>& operator=(AltruisticPtrImpl<T>& rhs);
-};*/
+	BasePtrImpl<T>& operator=(BasePtrImpl<T>& rhs) override;
+
+private:
+	int* numReferences;
+	void removeReference();
+	void decRefs() { (*numReferences)--; }
+	void incRefs() { (*numReferences)++; }
+};
 
 #endif
 
@@ -117,7 +137,13 @@ BasePtrImpl<T>::BasePtrImpl(BasePtrImpl<T>&& mover)
  : allocFunc(mover.allocFunc), freeFunc(mover.freeFunc), ptr(mover.ptr)
 {
 	mover.ptr = nullptr;
+	mover.allocFunc = nullptr;
+	mover.freeFunc = nullptr;
 }
+
+// only derived classes handle this - basically virtual
+template<class T>
+BasePtrImpl<T>::BasePtrImpl(BasePtrImpl<T>& other) { }
 
 template<class T>
 BasePtrImpl<T>::BasePtrImpl(T* movedPtr, AllocFunc a, FreeFunc f)
@@ -127,34 +153,32 @@ BasePtrImpl<T>::BasePtrImpl(T* movedPtr, AllocFunc a, FreeFunc f)
 }
 
 template<class T>
-T& BasePtrImpl<T>::operator*() const { return *ptr; }
-
-template<class T>
-T* BasePtrImpl<T>::operator->() const { return ptr; }
-
-template<class T>
-T& BasePtrImpl<T>::operator[](int offset) const { return *(ptr + offset); }
-
-template<class T>
-bool BasePtrImpl<T>::operator==(const T* other) const { return this->ptr == other; }
-
-template<class T>
-bool BasePtrImpl<T>::operator!=(const T* other) const { return this->ptr != other; }
-
-template<class T>
-bool BasePtrImpl<T>::operator==(const BasePtrImpl<T>& other) const {
-	return this->ptr == other.ptr;
+void BasePtrImpl<T>::freeDataIfThere()
+{
+	if (freeFunc != nullptr && ptr != nullptr) {
+		freeFunc(ptr);
+	}
 }
 
-template<class T>
-bool BasePtrImpl<T>::operator!=(const BasePtrImpl<T>& other) const {
-	return this->ptr != other.ptr;
-}
+template<class T> T& BasePtrImpl<T>::operator*() const
+	{ return *ptr; }
+template<class T> T* BasePtrImpl<T>::operator->() const
+	{ return ptr; }
+template<class T> T& BasePtrImpl<T>::operator[](int offset) const
+	{ return *(ptr + offset); }
+template<class T> bool BasePtrImpl<T>::operator==(const T* other) const
+	{ return this->ptr == other; }
+template<class T> bool BasePtrImpl<T>::operator!=(const T* other) const
+	{ return this->ptr != other; }
+template<class T> bool BasePtrImpl<T>::operator==(const BasePtrImpl<T>& other) const
+	{ return this->ptr == other.ptr; }
+template<class T> bool BasePtrImpl<T>::operator!=(const BasePtrImpl<T>& other) const
+	{ return this->ptr != other.ptr; }
 
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////// SingletonPtr ////////////////////////////////////////////
+////////////////////////////////////// SelfishPtrImpl ////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -168,21 +192,111 @@ SelfishPtrImpl<T>::SelfishPtrImpl(AllocFunc a, FreeFunc f)
 
 template<class T>
 SelfishPtrImpl<T>::SelfishPtrImpl(SelfishPtrImpl<T>&& mover)
- : BasePtrImpl<T>(mover.ptr, mover.allocFunc, mover.freeFunc)
+ : BasePtrImpl<T>(std::move(mover))
 {
-	// too selfish to share the ptr
-	mover.ptr = nullptr;
-	mover.freeFunc = nullptr;
-	mover.allocFunc = nullptr;
+
+}
+
+template<class T>
+SelfishPtrImpl<T>::SelfishPtrImpl(SelfishPtrImpl<T>& other)
+ : BasePtrImpl<T>(other.ptr, other.allocFunc, other.freeFunc)
+{
+	other.ptr = nullptr;
+	other.allocFunc = nullptr;
+	other.freeFunc = nullptr;
+}
+
+template<class T>
+BasePtrImpl<T>& SelfishPtrImpl<T>::operator=(BasePtrImpl<T>& rhs)
+{
+	// must be selfish 
+	SelfishPtrImpl<T>& srhs = static_cast<SelfishPtrImpl<T>&>(rhs);
+
+	if (this != &srhs) {
+		this->freeDataIfThere();
+		this->ptr = srhs.ptr;
+		this->allocFunc = srhs.allocFunc;
+		this->freeFunc = srhs.freeFunc;
+
+		srhs.ptr = nullptr;
+		srhs.allocFunc = nullptr;
+		srhs.freeFunc = nullptr;
+	}
+
+	return *this;
 }
 
 
 template<class T>
 SelfishPtrImpl<T>::~SelfishPtrImpl() {
-	// I'm the only one that knows about this object, so delete it
-	BasePtrImpl<T>::freeFunc(BasePtrImpl<T>::ptr);
+	// always free memory since I'm the only reference
+	this->freeDataIfThere();
 }
 
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////// AltruisticPtrImpl ////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
+
+template<class T>
+AltruisticPtrImpl<T>::AltruisticPtrImpl(AllocFunc a, FreeFunc f)
+ : BasePtrImpl<T>(a, f)
+{
+	numReferences = new int(1);
+}
+
+template<class T>
+AltruisticPtrImpl<T>::AltruisticPtrImpl(AltruisticPtrImpl<T>&& mover)
+ : BasePtrImpl<T>(std::move(mover)),
+   numReferences(mover.numReferences)
+{
+	mover.numReferences = nullptr;
+}
+
+template<class T>
+AltruisticPtrImpl<T>::~AltruisticPtrImpl() {
+	removeReference();
+}
+
+template<class T>
+AltruisticPtrImpl<T>::AltruisticPtrImpl(AltruisticPtrImpl<T>& other)
+ : BasePtrImpl<T>(other.ptr, other.allocFunc, other.freeFunc),
+   numReferences(other.numReferences)
+{
+	// you now share a reference, so increment it
+	incRefs();
+}
+
+template<class T>
+BasePtrImpl<T>& AltruisticPtrImpl<T>::operator=(BasePtrImpl<T>& rhs)
+{
+	// must be altruistic 
+	AltruisticPtrImpl<T>& arhs = static_cast<AltruisticPtrImpl<T>&>(rhs);
+
+	if (this != &arhs) {
+		removeReference();
+		this->numReferences = arhs.numReferences;
+		this->ptr = arhs.ptr;
+		this->allocFunc = arhs.allocFunc;
+		this->freeFunc = arhs.freeFunc;
+		incRefs();
+	}
+	
+	return *this;
+}
+
+template<class T>
+void AltruisticPtrImpl<T>::removeReference() {
+	// free memory if i'm the last reference
+	if (numReferences != nullptr) {
+		decRefs();
+		if (*numReferences == 0) {
+			delete numReferences;
+			this->freeDataIfThere();
+		}
+	}
+}
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -196,29 +310,30 @@ LeaklessPtr<T,Impl>::LeaklessPtr(T* (*aFunc) (), void (*fFunc) (T*))
 
 template<class T, template<class> class Impl>
 LeaklessPtr<T,Impl>::LeaklessPtr(LeaklessPtr<T,Impl>& other) 
- : pImpl(new Impl<T>(*other.pImpl))
+ : pImpl(new Impl<T>(*static_cast<Impl<T>*>(other.pImpl)))
 { }
 
 template<class T, template<class> class Impl>
-LeaklessPtr<T,Impl>& LeaklessPtr<T,Impl>::operator=(LeaklessPtr<T,Impl>& rhs) {
+LeaklessPtr<T,Impl>& LeaklessPtr<T,Impl>::operator=(LeaklessPtr<T,Impl>& rhs)
+{
 	if (this != &rhs) {
-		*pImpl = *rhs.pImpl;
+		// cast to the derived class to call the derived assignment operator
+		*pImpl = *static_cast<Impl<T>*>(rhs.pImpl);
 	}
 	return *this;
 }
 
 template<class T, template<class> class Impl>
 LeaklessPtr<T,Impl>::LeaklessPtr(LeaklessPtr<T,Impl>&& mover)
- : pImpl(new Impl<T>(std::move(static_cast<Impl<T>&&>(*mover.pImpl))))
+ : pImpl(new Impl<T>(std::move(*static_cast<Impl<T>*>(mover.pImpl))))
 {
-	mover.pImpl = nullptr; // mover stops existing, don't delete
+
 }
 
 template<class T, template<class> class Impl>
-LeaklessPtr<T,Impl>::~LeaklessPtr() {
-	if (pImpl != nullptr) {
-		delete pImpl;
-	}
+LeaklessPtr<T,Impl>::~LeaklessPtr()
+{
+	delete pImpl;
 }
 
 template<class T, template<class> class Impl>
@@ -232,12 +347,12 @@ T& LeaklessPtr<T,Impl>::operator[](int offset) const { return pImpl->operator[](
 
 template<class T, template<class> class Impl>
 bool LeaklessPtr<T,Impl>::operator==(const T* other) const {
-	return pImpl->operator==(other->pImpl);
+	return pImpl->operator==(other);
 }
 
 template<class T, template<class> class Impl>
 bool LeaklessPtr<T,Impl>::operator!=(const T* other) const {
-	return pImpl->operator!=(other->pImpl);
+	return pImpl->operator!=(other);
 }
 
 template<class T, template<class> class Impl>

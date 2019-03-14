@@ -2,9 +2,7 @@
 #ifndef SIMULATION_H
 #define SIMULATION_H
 
-#include "SmartPtr.h"
-#include "SharedPtr.h"
-#include "UniquePtr.h"
+#include "LeaklessPtr.h"
 #include "timer.h"
 #include <vector>
 #include <list>
