@@ -8,5 +8,8 @@ main: LeaklessPtr.h main.cpp
 mem-test: main
 	$(VALGRIND) ./main
 
+sim: simulation.h simulation.cpp simulate.cpp LeaklessPtr.h
+	$(GCC) simulation.cpp simulate.cpp -o sim
+
 clean:
 	rm main

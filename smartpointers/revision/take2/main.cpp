@@ -110,10 +110,30 @@ void testAltruistic() {
 	assert(nptr1->n == 3);
 }
 
+struct noDef {
+	int n;
+	noDef(int n1) : n(n1) {}
+};
+
+using noDefSelfishPtr = LeaklessPtr<noDef, SelfishPtrImpl>;
+
+void testVariableArgs() {
+	noDefSelfishPtr ndptr(
+		[] () { return new noDef(10); },
+		[] (noDef* n) { delete n; });
+
+	// int n = 20;
+	// noDefSelfishPtr ndptr2(
+	// 	[n] () { return new noDef(n); },
+	// 	[] (noDef* n) { delete n; });
+}
+
 int main() {
 
 	testSelfish();
 	testAltruistic();
+
+	testVariableArgs();
 
 	cout << "Passed all tests!" << endl;
 }

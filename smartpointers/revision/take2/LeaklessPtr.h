@@ -16,11 +16,17 @@ public:
 
 	// main constructor takes in an allocation function
 	// and a freeing function
-	LeaklessPtr(T* (*aFunc) (), void (*fFunc) (T*));
+	LeaklessPtr(AllocFunc aFunc, FreeFunc fFunc);
 
 	LeaklessPtr(LeaklessPtr<T,Impl>& other);
 	LeaklessPtr<T,Impl>& operator=(LeaklessPtr<T,Impl>& rhs);
 	LeaklessPtr(LeaklessPtr<T,Impl>&& mover);
+
+	// // variadic template
+	// template<class... Args>
+	// LeaklessPtr(T* (*a) (Args...), FreeFunc f, Args... args)
+	//  : pImpl(new Impl<T>(a, f, args...))
+	// { }
 
 	// destructor has to free memory
 	~LeaklessPtr();
@@ -51,6 +57,15 @@ public:
 	BasePtrImpl(T* movedPtr, AllocFunc a, FreeFunc f);
 
 	BasePtrImpl(BasePtrImpl<T>& other);
+
+	// template<class... Args>
+	// //          pointer to a function
+	// //          that takes in a
+	// //          variable number of
+	// //          args
+	// BasePtrImpl(T* (*a) (Args...), FreeFunc f, Args... args)
+	//  : allocFunc(nullptr), freeFunc(f), ptr(a(args...))
+	// { }
 
 	T& operator*() const;
 	T* operator->() const;
@@ -83,6 +98,11 @@ public:
 	SelfishPtrImpl(AllocFunc a, FreeFunc f);
 	SelfishPtrImpl(SelfishPtrImpl<T>&& mover);
 	~SelfishPtrImpl();
+
+	// template<class... Args>
+	// SelfishPtrImpl(T* (*a) (Args...), FreeFunc f, Args... args)
+	//  : BasePtrImpl<T>(a, f, args...)
+	// { }
 
 	// steal 
 	SelfishPtrImpl(SelfishPtrImpl<T>& other);
@@ -152,6 +172,13 @@ BasePtrImpl<T>::BasePtrImpl(T* movedPtr, AllocFunc a, FreeFunc f)
 
 }
 
+// template<class T, class... Args>
+// BasePtrImpl<T>::BasePtrImpl<Args>(AllocFunc a, FreeFunc f, Args... args)
+//  : aFunc(a), fFunc(f), ptr(aFunc(args...))
+// {
+
+// }
+
 template<class T>
 void BasePtrImpl<T>::freeDataIfThere()
 {
@@ -196,6 +223,13 @@ SelfishPtrImpl<T>::SelfishPtrImpl(SelfishPtrImpl<T>&& mover)
 {
 
 }
+
+// template<class T, class... Args>
+// SelfishPtrImpl<T>::SelfishPtrImpl<Args>(AllocFunc a, FreeFunc f, Args... args)
+//  : BasePtrImpl(a, f, args...)
+// {
+
+// }
 
 template<class T>
 SelfishPtrImpl<T>::SelfishPtrImpl(SelfishPtrImpl<T>& other)
@@ -304,7 +338,7 @@ void AltruisticPtrImpl<T>::removeReference() {
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 template<class T, template<class> class Impl>
-LeaklessPtr<T,Impl>::LeaklessPtr(T* (*aFunc) (), void (*fFunc) (T*))
+LeaklessPtr<T,Impl>::LeaklessPtr(AllocFunc aFunc, FreeFunc fFunc)
  : pImpl(new Impl<T>(aFunc, fFunc))
 { }
 
@@ -312,6 +346,13 @@ template<class T, template<class> class Impl>
 LeaklessPtr<T,Impl>::LeaklessPtr(LeaklessPtr<T,Impl>& other) 
  : pImpl(new Impl<T>(*static_cast<Impl<T>*>(other.pImpl)))
 { }
+
+// template<class T, template<class>class Impl, class... Args>
+// LeaklessPtr<T,Impl>::LeaklessPtr(AllocFunc a, FreeFunc f, Args... args)
+//  : pImpl(new Impl<T>(a, f, args...))
+// {
+
+// }
 
 template<class T, template<class> class Impl>
 LeaklessPtr<T,Impl>& LeaklessPtr<T,Impl>::operator=(LeaklessPtr<T,Impl>& rhs)

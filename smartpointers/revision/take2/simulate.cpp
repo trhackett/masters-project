@@ -4,6 +4,18 @@
 
 using namespace std;
 
+/* ============================================================================
+	Potential heuristic functions
+   ============================================================================ */ 
+double manhattenDistance(int row, int col, const Simulation* sim) {
+	return abs(row - sim->getEndRow()) +
+       abs(col - sim->getEndCol());
+}
+
+double avoidTraffic(int row, int col, const Simulation* sim) {
+	return sim->getIntersectionAt(row, col).getNumCars();
+}
+
 void run(Timer& t, double& constructTime, double& simulationTime,
 		 double& aveStartToFinishTime) {
 	
@@ -16,14 +28,15 @@ void run(Timer& t, double& constructTime, double& simulationTime,
 				   9, 9,    // endRow and endCol
 				   5,       // number of cars to enter per iteration
 				   100,     // number of iterations 
-				   5);      // number of cars that leave intersection each iteration
+				   ,        // number of cars that leave intersection each iteration
+				   &manhattenDistance); // heuristic function      
 	constructTime = t.elapsed();
 
 	// restart timer
 	t.start();
 
 	// start simulation
-	// aveStartToFinishTime = sim.runSimulation();
+	aveStartToFinishTime = sim.runSimulation();
 	simulationTime = t.elapsed();
 
 	// restart time

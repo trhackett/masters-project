@@ -3,41 +3,31 @@
 #include <cstdlib>
 #include <queue>
 
-/* ============================================================================
-	Potential heuristic functions
-   ============================================================================ */ 
-double manhattenDistance(int row, int col, const Simulation* sim) {
-	return abs(row - sim->getEndRow()) +
-       abs(col - sim->getEndCol());
-}
 
-double avoidTraffic(int row, int col, const Simulation* sim) {
-	return sim->getIntersectionAt(row, col)->getNumCars();
-}
-
-
-void Car::init(int row, int col, double (*hFunc) (int, int, const Simulation*))
+Car::Car(int row, int col)
+ : m_row(row), m_col(col)
 {
-	m_row = row;
-	m_col = col;
-	m_heuristicFunc = hFunc;
 	lastIterMoved = -1;
 	routeComputeTime = 0.0;
 	m_timer.start();
 }
 
-double Car::getHValue(int row, int col, const Simulation* sim) {
-	return m_heuristicFunc(row, col, sim);
-}
 
-
-Simulation::Simulation(int r, int c, int sR, int sC, int eR, int eC, int F, int numI, int carM)
- : iGrid(r, vector<SmartPtr<Intersection, UniquePtr>>(c)),
-   maxRows(r), maxCols(c), startRow(sR), startCol(sC),
+Simulation::Simulation(int r, int c, int sR, int sC, int eR, int eC, int F, int numI, int carM,
+					   double (*hFunc) (int, int, const Simulation*))
+ : maxRows(r), maxCols(c), startRow(sR), startCol(sC),
    endRow(eR), endCol(eC), carFrequency(F),
-   carMovement(carM), numIterations(numI)
+   carMovement(carM), numIterations(numI),
+   heuristicFunc(hFunc)
 {
-	cout << "simulation constructor done" << endl;
+	for (int i = 0; i < maxRows; i++) {
+		iGrid.push_back(vector<LeaklessPtr<Intersection, SelfishPtrImpl>>());
+		for (int j = 0; j < maxCols; j++) {
+			iGrid[i].push_back(LeaklessPtr<Intersection, SelfishPtrImpl>(
+								[] () { return new Intersection; },
+								[] (Intersection* i) { delete i; }));
+		}
+	}
 }
 
 
@@ -75,7 +65,7 @@ void Simulation::moveCarsAtIntersection(int row, int col) {
 	while (iGrid[row][col]->hasCars() && carsMoved < carMovement) {
 
 		RouteComputer rc;
-		SmartPtr<Car, SharedPtr> c = iGrid[row][col]->getCarToMove();
+		LeaklessPtr<Car, AltruisticPtrImpl> c = iGrid[row][col]->getCarToMove();
 
 		  // impossible for a car that was moved to this intersection
 		  // this iteration to be ahead of one that was moved here in
@@ -109,13 +99,9 @@ double Simulation::computeStats() {
 
 
 void Simulation::insertNewCar() {
-	SmartPtr<Car, SharedPtr> temp(
-		[] () { return new Car; }, 
+	LeaklessPtr<Car, AltruisticPtrImpl> temp(
+		[=] () { return new Car(startRow, startCol); }, 
 		[] (Car* c) { delete c; });
-
-	  // to test out different heuristics, pass different
-	  // functions into here
-	temp->init(startRow, startCol, &manhattenDistance);
 
 	  // it is located in an intersection
 	iGrid[startRow][startCol]->addCar(temp);
@@ -127,7 +113,7 @@ void Simulation::insertNewCar() {
 
   // this returns true if the car has left the simulation and needs to be
   // removed from it's intersection
-bool Simulation::moveCarInDirection(SmartPtr<Car, SharedPtr> carPtr, Direction d,
+bool Simulation::moveCarInDirection(LeaklessPtr<Car, AltruisticPtrImpl> carPtr, Direction d,
 									double& computationTime)
 {
 	int currRow = carPtr->row();
@@ -210,8 +196,8 @@ bool Simulation::getRowColInDirection(int& row, int& col, Direction d) const
 
 
   // this is where A* happens
-Direction RouteComputer::getNextMove(SmartPtr<Car, SharedPtr> car, const Simulation& sim,
-									 double& computeTime)
+Direction RouteComputer::getNextMove(LeaklessPtr<Car, AltruisticPtrImpl> car,
+									 const Simulation& sim, double& computeTime)
 {
 	Timer computeTimer;
 
@@ -266,7 +252,7 @@ Direction RouteComputer::getNextMove(SmartPtr<Car, SharedPtr> car, const Simulat
 					  // add it to the open list as long as there isn't an f value
 					  // corresponding to that point on the grid that is smaller than
 					  // this one
-					double hVal = car->getHValue(nextRow, nextCol, &sim);
+					double hVal = sim.getHvalue(nextRow, nextCol);
 					node child(nextRow, nextCol, parent.row, parent.col, parent.g + 1, hVal);
 
 					if (!betterOptionIn(child.row, child.col, child.f, openFVals) &&

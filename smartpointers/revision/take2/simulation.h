@@ -20,9 +20,8 @@ class Simulation;
    ============================================================================ */
 class Car {
 public:
-	Car() { }
+	Car(int r, int c);
 
-	void init(int row, int col, double (*hFunc) (int, int, const Simulation*));
 
 	  // basic get/set functions
 	void restartTime()    { m_timer.start(); }
@@ -36,15 +35,11 @@ public:
 	void setLastIterMoved(int l) { lastIterMoved = l; }
 	void addComputationTime(double d) { routeComputeTime += d; }
 
-	  // calling the heuristic function
-	double getHValue(int row, int col, const Simulation* sim);
-
 private:
 	Timer m_timer;
 	double routeComputeTime;
 	int m_row, m_col;
 	int lastIterMoved;
-	double (*m_heuristicFunc) (int, int, const Simulation*);
 };
 
 
@@ -66,20 +61,18 @@ public:
 	  // see if there are cars
 	bool hasCars() const   { return !cars.empty(); }
 	  // get the car that's been waiting the longest
-	SmartPtr<Car, SharedPtr> getCarToMove() const
+	LeaklessPtr<Car, AltruisticPtrImpl> getCarToMove()
 		{ return cars.front(); }
 
 	  // make adjustments to the set of cars here
 	void removeCar()
 		{ cars.pop_front(); }
-	void addCar(SmartPtr<Car, SharedPtr> carPtr)
-	{
-		cars.push_back(carPtr);
-	}
+	void addCar(LeaklessPtr<Car, AltruisticPtrImpl> carPtr)
+		{ cars.push_back(std::move(carPtr)); }
 
 
 private:
-	list<SmartPtr<Car, SharedPtr>> cars;
+	list<LeaklessPtr<Car, AltruisticPtrImpl>> cars;
 };
 
 /* ================================================================================
@@ -91,7 +84,7 @@ public:
 	  // when getting the next move, you have complete knowledge
 	  // of the simulation at that time - you know how many cars
 	  // are at each intersection and you also know the goal
-	Direction getNextMove(SmartPtr<Car, SharedPtr> carPtr, const Simulation& sim,
+	Direction getNextMove(LeaklessPtr<Car, AltruisticPtrImpl> carPtr, const Simulation& sim,
 						  double& dT);
 
 private:
@@ -131,7 +124,8 @@ private:
 class Simulation {
 public:
 
-	Simulation(int r, int c, int sR, int sC, int eR, int eC, int Fz, int numI, int numC);
+	Simulation(int r, int c, int sR, int sC, int eR, int eC, int Fz, int numI, int numC,
+			   double (*hFunc) (int, int, const Simulation*));
 	~Simulation();
 	double runSimulation();
 
@@ -139,11 +133,14 @@ public:
 	int getEndCol() const  { return endCol; }
 	int getMaxRows() const { return maxRows; }
 	int getMaxCols() const { return maxCols; }
-	  // must return by const reference to obey the promise the const function makes
-	const SmartPtr<Intersection, UniquePtr>& getIntersectionAt(int r, int c) const
-		{ return iGrid[r][c]; }
+
+	const Intersection& getIntersectionAt(int r, int c) const
+		{ return *iGrid[r][c]; }
 
 	bool getRowColInDirection(int& row, int& col, Direction d) const;
+
+	// call the heuristic function
+	double getHvalue(int sRow, int sCol) const { return heuristicFunc(sRow, sCol, this); }
 
 	void printSim() const {
 		for (size_t i = 0; i < iGrid.size(); i++) {
@@ -158,7 +155,7 @@ public:
 private:
 	  // stored as a two dimensional array of smart pointers to an
 	  // intersection
-	using IntersectionGrid = vector<vector<SmartPtr<Intersection, UniquePtr>>>;
+	using IntersectionGrid = vector<vector<LeaklessPtr<Intersection, SelfishPtrImpl>>>;
 
 	  // 2D array (vector) of Intersections
 	IntersectionGrid iGrid;
@@ -177,6 +174,8 @@ private:
 	int numIterations;
 	  // current iteration
 	int currentIteration;
+	// heuristic function for route computers
+	double (*heuristicFunc) (int, int, const Simulation*);
 
 	  // newly inserted cars start at startRow,startCol and do nothing their
 	  // first iteration
@@ -184,7 +183,7 @@ private:
 	  // takes coordinates and moves the cars there
 	void moveCarsAtIntersection(int row, int col);
 	  // takes a car and a direction and moves it in that direction
-	bool moveCarInDirection(SmartPtr<Car, SharedPtr> carPtr, Direction d, double& cT);
+	bool moveCarInDirection(const LeaklessPtr<Car, AltruisticPtrImpl> carPtr, Direction d, double& cT);
 
 	  // only basic stats
 	vector<double> startToFinishTimes;
