@@ -23,7 +23,7 @@ is provided as a solution for the spec.
 The second lab is more of a problem set (no code-writing necessary) and addresses
 rvalue references and value expressions. The [spec](value-expr/README.md)
 serves as a write-up on these topics with pointers to additional resources and provides
-the questions. Solutions arae found in [this text file](value-expr/solutions.txt).
+the questions. Solutions are found in [this text file](value-expr/solutions.txt).
 
 The third lab digs into template metaprogramming and writing classes that are easily
 extensible. Programmers should be able to take the interface and use it for their
