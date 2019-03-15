@@ -6,7 +6,7 @@ Topics Covered
 - Advanced Templates / Template Metaprograaming
 - Multiple Inheritance
 
-# Overview
+## Overview
 
 All of the programs you've written up to this point have been designed
 to solve some very specific problem. The specification details exactly
@@ -111,7 +111,7 @@ private:
 
 You're to employ policy-based class design techniques in creating this class to handle a majority of the functionality. There are three policies specific to our Application class. A Protocol policy, which determines how to format messages written to the DataStore as well as how to read messages read from the DataStore. An Encoding policy, which encodes and decodes data written to and read from the DataStore. Finally, a Storage policy, which takes care of managing the data for each application.
 
-# Protocol
+## Protocol
 
 The Protocol policy needs to take care of preparing messages for writing to the DataStore and extracting information from messages read from the DataStore. So before an Application writes something to the DataStore, it asks the Protocol for format the message. Similarly, when an Application reads from the DataStore, it passes the raw data to the Protocol and asks for either the address if it's connecting and data if its reading messages. The only Protocol policy we'll write is called SimpleProtocol and supports the following functionality:
 
@@ -154,7 +154,7 @@ Then, if another application (address "MOO") does a heartbeat, DataStore will lo
 One Application call to getNextConnection(idx, rawdata, addr) with idx initialized to 0 will return true, set idx to 7 and addr to "BOE". Another call will the same arguments will return true, set idx to rawdata.size() and addr to "MOO". Meanwhile, one Application call to getNextData(idx, rawdata, data, addr) with idx initialized to 0 will return true, set idx to 16, addr to BOE, data to "kylie". It returns true two more times (setting idx, data, and address accordingly) and then returns false.
 With that being said, there are multiple ways to implement the Protocol. It is up to your discretion as to exactly what the message format is.
 
-# Encoding
+## Encoding
 
 The above description of the Protocol does no encoding of messages, anyone anywhere with access to the DataStore can read the messages. We'd like some kind of capability to add protection here. To do so, the Application can also specify some Encoding Policy that the Protocol will use to encode the data before sending and decode data that is read. We'll write a HuffmanEncoder that supports the following functionality:
 
@@ -183,7 +183,7 @@ A potentially convulted part of developing this encoder is how the tree is going
 
 For any object (other than a base-class subobject) of trivially copyable type T, whether or not the object holds a valid value of type T, the underlying bytes making up the object can be copied into an array of char, unsigned char, or std::byte. If the content of that array is copied back into the object, the object shall subsequently hold its original value. As always, be wary of leaking memory. You may find it helpful to first write a SimpleEncoder class that does not encoding (just returns the passed in string), up to you.
 
-# Storage
+## Storage
 
 Finally, your Application needs to have a Storage policy. It stores the type of data that your Application manages and gives the application a way to access that data. Our Storage (unsurprisingly rather simple) implements the following functionality:
 
@@ -211,6 +211,28 @@ There are many ways for an Application to remember where something is stored. He
 
 In this scenario, we have the application managing it's own connections, which in practice we're unlikely to do. It'd be better - it would generalize the class structure even better, if we were to provide a ConnectionManager policy that takes care of setting up connections over the DataStore, storing connections that it has, and connecting with other Applications. But we won't go into that in this lab, you've done enough.
 
-# Your final task
+## Your final task
 
-Now that you have a working, extensible Application class, let's write a real life application that uses it. You're going to implement a simple Airport application. When this airport is constructed, you need to pass in a vector of airport routes that the Airport stores. A route is a series of airport codes (all length 3) such as "LAXDENDTWSANJFK". Airports can alertAirports(), which posts their data, including their own address to the DataStore. They can also gatherData(), in which they read all routes on the DataStore and add it to their collection of routes.
+Now that you have a working, extensible Application class, let's write a real life application that uses it. You're going to implement a simple Airport application. When this airport is constructed, you need to pass in a vector of airport routes that the Airport stores. A route is a series of airport codes (all length 3) such as "LAXDENDTWSANJFK". Airports can alertAirports(), which posts their data, including their own address to the DataStore. They can also gatherData(), in which they read all routes on the DataStore and add it to their collection of routes. The interface is as such:
+
+```
+class Airport :
+  public Application<SimpleProtocol,HuffmanEncoding,Route,SimpleStorage>
+{
+public:
+
+    // takes in a list of routes to store - all originate at this
+    // address.
+  Airport(string addr, DataStore& ds, const vector<Route>& routes);
+
+    // alertAirports() not only makes you discoverable by other airports
+    // but writes your routes to the DataStore so that others can learn
+    // your routes.
+  void alertAirports() const;
+
+    // gatherData() reads in data from airports currently broadcasting
+    // on the DataStore. It stores an routes on the DataStore along
+    // with our own.
+  void gatherData();
+};
+```
