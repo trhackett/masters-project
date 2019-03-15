@@ -128,3 +128,23 @@ This simulation is admittedly rudimentary. Once you've got it working and it lea
 - traffic model: it's unlikely that intersections can actually support an infinite number of cars. It could be interesting to block off full intersections. 
 - accident simulation: what happens if there is an accident at an intersection and none of the cars can move? How would they factor that into their route.
 - actual roads: instead of this 2D grid of intersections, can you confure up a way for the simulator to look like actual roads with distances and times to get from one to another. We make the strong assumption here that it takes the same amount of time to get from one intersection to an adjacent on, which is not true in real life. It would be interesting to make a more accurate model.
+
+
+# Instructions for running solution
+
+```
+# compile and run simple test driver main function for LeaklessPtrs
+make main
+./main
+
+# run memory test on main function
+make mem-test
+
+# compile and run simulation solution
+# feel free to change the heuristic function in simulate.cpp
+make sim
+./sim
+
+# run memory test on simulation
+make sim-mem
+```

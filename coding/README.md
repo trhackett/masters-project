@@ -236,3 +236,10 @@ public:
   void gatherData();
 };
 ```
+## Instructions to run solution;
+
+```
+# mostly concerned with compiler errors
+make test
+./test
+```
