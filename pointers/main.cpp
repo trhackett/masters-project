@@ -23,22 +23,25 @@ IntSelfishPtr func1() {
 
 void testSelfish() {
 
-	// can't copy construct, can't default construct
-	static_assert(!is_copy_constructible<IntSelfishPtr>::value, "Can't copy construct SelfishPtr");
-	static_assert(!is_default_constructible<IntSelfishPtr>::value, "Can't default construct SelfishPtr");
-
+	// constructor takes in two lambda functions for allocating
+	// memory and freeing it.
 	IntSelfishPtr iptr1(
 		[] () { return new int; },
 		[] (int* i) { delete i; });
 
+	// copy constructor (elided) should steal resources from the
+	// IntSelfish Ptr in func1()
 	IntSelfishPtr iptr2 = func1();
 
+	// moving is also stealing.
 	IntSelfishPtr iptr3(std::move(iptr1));
 
 	assert(iptr1 == nullptr);
 	assert(iptr2 != nullptr);
 	assert(iptr3 != nullptr);
 
+	// like any normal pointer, you can set the value and access
+	// it later using the * operator or the [] operator.
 	*iptr2 = 10;
 	assert(*iptr2 == 10);
 	assert(iptr2[0] == 10);
@@ -46,10 +49,13 @@ void testSelfish() {
 	*iptr3 = 10;
 	assert(*iptr2 == *iptr3);
 
+	// also works with user-defined types
 	NumberSelfishPtr nptr(
 		[] () { return new Number; },
 		[] (Number* n) { delete n; });
 
+	// the -> operator can be used to access members
+	// of that type
 	assert(nptr != nullptr);
 	nptr->increment();
 	nptr->increment();
@@ -73,6 +79,9 @@ using IntAltruisticPtr = LeaklessPtr<int, AltruisticPtrImpl>;
 using NumberAltruisticPtr = LeaklessPtr<Number, AltruisticPtrImpl>;
 
 void testAltruistic() {
+
+	// constructed similarly - we tell the Ptr how to allocate and
+	// free memory
 	IntAltruisticPtr iptr1(
 		[] () { return new int; },
 		[] (int* i) { delete i;});
@@ -110,30 +119,10 @@ void testAltruistic() {
 	assert(nptr1->n == 3);
 }
 
-struct noDef {
-	int n;
-	noDef(int n1) : n(n1) {}
-};
-
-using noDefSelfishPtr = LeaklessPtr<noDef, SelfishPtrImpl>;
-
-void testVariableArgs() {
-	noDefSelfishPtr ndptr(
-		[] () { return new noDef(10); },
-		[] (noDef* n) { delete n; });
-
-	// int n = 20;
-	// noDefSelfishPtr ndptr2(
-	// 	[n] () { return new noDef(n); },
-	// 	[] (noDef* n) { delete n; });
-}
-
 int main() {
 
 	testSelfish();
 	testAltruistic();
-
-	testVariableArgs();
 
 	cout << "Passed all tests!" << endl;
 }

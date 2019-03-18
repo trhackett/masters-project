@@ -10,6 +10,11 @@ public:
 	string decode(string data, char* tree) const { return data; }
 };
 
+/*
+	Deferred to make other specs and learn new c++ concepts rather
+	than writing code for something I'm already familiar with. It's
+	a good exercise to actually code up this algorithm.
+*/
 class HuffmanEncoding {
 public:
 	string encode(string data, char* tree) const { return data; }
